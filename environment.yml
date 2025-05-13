@@ -4,17 +4,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - cudatoolkit-dev=11.3
   - gcc_linux-64=11
   - gxx_linux-64=11
-  - cudatoolkit=11.8
   - plyfile
   - python=3.7.13
   - pip=22.3.1
-  - pytorch=1.12.1
   - torchaudio=0.12.1
   - torchvision=0.13.1
   - tqdm
   - pip:
+    - torch==1.12.1+cu113torch==1.12.1+cu113 torchvision==0.13.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
     - submodules/diff-gaussian-rasterization
     - submodules/simple-knn
     - submodules/fused-ssim
