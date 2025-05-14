@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - numpy<2
   - gcc_linux-64=11
   - gxx_linux-64=11
   - python=3.9
