@@ -5,6 +5,7 @@
   - ``GaussianModel.densify_XX()`` functions
   - ``forward.cu`` 
   - ``backward.cu``
+- what is [sparse adam](https://youtu.be/MD2fYip6QsQ?si=SMl8A8t1ycWLg237)?
 
 <br> <br>
 
@@ -129,3 +130,6 @@
 #### densify_and_prune()
 
 #### add_densification_stats()
+
+## train.py
+- calculates camera view (around line 111, ff.)
