@@ -91,6 +91,9 @@
 <br>
 
 ## scene
+### __init__
+- maybe modify `save()` to store camera views of scene
+
 ### gaussian_model
 - imports torch.nn; Neural Nets?
 
