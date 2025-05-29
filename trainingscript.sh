@@ -9,5 +9,5 @@
 source activate gaussian_splatting
 
 # Run training
-python /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/train.py \
-    -s /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/nerf-360-scenes/bonsai 
+python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/bonsai 
