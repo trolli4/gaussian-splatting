@@ -26,7 +26,3 @@ source activate gaussian_splatting
 pip install /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/diff-gaussian-rasterization \
             /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/simple-knn \
             /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/fused-ssim
-
-# Run training
-python /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/train.py \
-    -s /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/nerf-360-scenes/garden
