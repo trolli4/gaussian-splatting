@@ -17,12 +17,12 @@ export CUDA_HOME=$CUDA_HOME
 conda env remove --name gaussian_splatting -y
 
 # Create environment
-conda env create --file /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/environment.yml
+conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
 
 # Activate environment
 source activate gaussian_splatting
 
 # Install C++/CUDA submodules (after torch is installed)
-pip install /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/diff-gaussian-rasterization \
-            /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/simple-knn \
-            /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/submodules/fused-ssim
+pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
+            /home/s76mfroe_hpc/gaussian-splatting/submodules/simple-knn \
+            /home/s76mfroe_hpc/gaussian-splatting/submodules/fused-ssim
