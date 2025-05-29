@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
+#SBATCH --partition=sgpu_devel
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
