@@ -10,4 +10,4 @@ source activate gaussian_splatting
 
 # Run training
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/bonsai 
+    -s /home/s76mfroe_hpc/nerf-360-scenes/bicycle
