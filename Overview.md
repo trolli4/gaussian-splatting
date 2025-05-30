@@ -14,6 +14,7 @@
 ## gaussian_renderer/\_\_init__.py
 - take closer look
 - renders the scene for camera at ``viewpoint_camera``
+- ``render(.....)["render"]`` is image seen from camera ``viewpoint_camera``
 
 ## submodules/diff_gaussian_rasterization
 ### setup.py
