@@ -33,7 +33,7 @@
 #### _RasterizeGaussians.forward()
 - computes output for given input ?
 - rasterizes gaussians
-- formats given arguments in a way that C++ can work with them
+- formats given arguments in a way that C++ can work with them  
 ```_RasterizeGaussians.forward()``` calls ```_C.rasterizeGaussians(*args)``` >>> ```_C.rasterizeGaussians(..)``` is CUDA rasterizer which is used inside the function
 
 #### _RasterizerGaussian.backward()
