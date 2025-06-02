@@ -129,14 +129,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Depth regularization
         Ll1depth_pure = 0.0
         if depth_l1_weight(iteration) > 0 and viewpoint_cam.depth_reliable:
-            invDepth = render_pkg["depth"]
-            mono_invdepth = viewpoint_cam.invdepthmap.cuda()
+            invDepth = render_pkg["depth"]                                          # model's predicted depth map
+            mono_invdepth = viewpoint_cam.invdepthmap.cuda()                        # reference inverse depth map
             depth_mask = viewpoint_cam.depth_mask.cuda()
 
             Ll1depth_pure = torch.abs((invDepth  - mono_invdepth) * depth_mask).mean()
             Ll1depth = depth_l1_weight(iteration) * Ll1depth_pure 
             loss += Ll1depth
-            Ll1depth = Ll1depth.item()
+            Ll1depth = Ll1depth.item()                                              # Converts to float (for logging/debugging)
         else:
             Ll1depth = 0
 
