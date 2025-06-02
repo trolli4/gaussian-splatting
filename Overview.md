@@ -68,6 +68,7 @@
 
 ### cuda_rasterizer/backward.cu
 - backpropagation?
+- positional Gradient (line 625 ff.)
 
 #### computeColorFromSH()
 
