@@ -139,3 +139,4 @@
 
 ## train.py
 - calculates camera view (around line 111, ff.)
+- utilize ``loss.backward()`` (line 142)
