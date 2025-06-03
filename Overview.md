@@ -55,7 +55,7 @@
 ### cuda_rasterizer/forward.cu
 - [``forward.cu`` vs ``backward.cu``](https://sandokim.github.io/cuda/cuda-rasterizer-foward-cu-backward-cu/)
 - tile-based rendering
-- 
+- rasterization around line 360
 
 #### computeColorFromSH()
 
