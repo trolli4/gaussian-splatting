@@ -64,7 +64,7 @@ class GaussianModel:
         self.percent_dense = 0
         self.spatial_lr_scale = 0
         self.setup_functions()
-        self.e_k = 0.0
+        self.e_k = torch.empty(0)
         self.E_k = 0.0
 
     def capture(self):
@@ -180,6 +180,7 @@ class GaussianModel:
         self.pretrained_exposures = None
         exposure = torch.eye(3, 4, device="cuda")[None].repeat(len(cam_infos), 1, 1)
         self._exposure = nn.Parameter(exposure.requires_grad_(True))
+        self.e_k = nn.Parameter(torch.tensor(0.0, requires_grad = True))
 
     def training_setup(self, training_args):
         self.percent_dense = training_args.percent_dense
