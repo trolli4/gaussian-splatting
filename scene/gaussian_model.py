@@ -64,6 +64,8 @@ class GaussianModel:
         self.percent_dense = 0
         self.spatial_lr_scale = 0
         self.setup_functions()
+        self.e_k = 0.0
+        self.E_k = 0.0
 
     def capture(self):
         return (
@@ -79,6 +81,8 @@ class GaussianModel:
             self.denom,
             self.optimizer.state_dict(),
             self.spatial_lr_scale,
+            self.e_k,
+            self.E_k,
         )
     
     def restore(self, model_args, training_args):
@@ -93,7 +97,9 @@ class GaussianModel:
         xyz_gradient_accum, 
         denom,
         opt_dict, 
-        self.spatial_lr_scale) = model_args
+        self.spatial_lr_scale,
+        self.e_k,
+        self.E_k) = model_args
         self.training_setup(training_args)
         self.xyz_gradient_accum = xyz_gradient_accum
         self.denom = denom
