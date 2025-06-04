@@ -14,6 +14,7 @@
 ## gaussian_renderer/\_\_init__.py
 - take closer look
 - renders the scene for camera at ``viewpoint_camera``
+- ``render(.....)["render"]`` is image seen from camera ``viewpoint_camera``
 
 ## submodules/diff_gaussian_rasterization
 ### setup.py
@@ -53,7 +54,8 @@
 
 ### cuda_rasterizer/forward.cu
 - [``forward.cu`` vs ``backward.cu``](https://sandokim.github.io/cuda/cuda-rasterizer-foward-cu-backward-cu/)
-- tile-based rendering?
+- tile-based rendering
+- rasterization around line 360
 
 #### computeColorFromSH()
 
@@ -67,6 +69,7 @@
 
 ### cuda_rasterizer/backward.cu
 - backpropagation?
+- positional Gradient (line 625 ff.)
 
 #### computeColorFromSH()
 
@@ -136,3 +139,4 @@
 
 ## train.py
 - calculates camera view (around line 111, ff.)
+- utilize ``loss.backward()`` (line 142)
