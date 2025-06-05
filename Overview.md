@@ -30,6 +30,7 @@
 - subclass of ```torch.autograd.Function```
 - custom autograd function
 - [explanation of what a (custom) autograd function is](https://brsoff.github.io/tutorials/beginner/examples_autograd/two_layer_net_custom_function.html)
+- calling ``_RasterizeGaussians.apply(args)`` internally passes ``args`` to ``_RasterizeGaussians.forward(..)`` and then does one forward - backward pass
 
 #### _RasterizeGaussians.forward()
 - computes output for given input ?
@@ -37,7 +38,7 @@
 - formats given arguments in a way that C++ can work with them
 ```_RasterizeGaussians.forward()``` calls ```_C.rasterizeGaussians(*args)``` >>> ```_C.rasterizeGaussians(..)``` is CUDA rasterizer which is used inside the function
 
-#### _RasterizerGaussian.backward()
+#### _RasterizeGaussian.backward()
 - computes input for given output ?
 - calculates gradients of gaussians/tensors, returns tuple 'grad' which has same variables as 'rasterize_gaussians()' takes
 - formats arguments for C++ lib
