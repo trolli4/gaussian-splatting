@@ -109,7 +109,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
-        image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
 
         # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
@@ -141,6 +141,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             Ll1depth = 0
 
         loss.backward()
+
+        # error-based densification
+        per_pixel_error = torch.abs(image - gt_image)
+        phi_ERR = error_render                                                      # error_render returned by render(..)
+        L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
+        # dL_aux, de_k = get_error_derivatives()
 
         iter_end.record()
 

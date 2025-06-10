@@ -118,6 +118,10 @@ class GaussianModel:
         return self._xyz
     
     @property
+    def get_e_k(self):
+        return self.e_k
+    
+    @property
     def get_features(self):
         features_dc = self._features_dc
         features_rest = self._features_rest
