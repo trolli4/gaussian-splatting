@@ -100,7 +100,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             scales = scales,
             rotations = rotations,
             cov3D_precomp = cov3D_precomp,
-            error_helper = error_helper)
+            error_helper = error_helper,)
     else:
         rendered_image, radii, depth_image, error_render = rasterizer(
             means3D = means3D,
@@ -111,7 +111,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             scales = scales,
             rotations = rotations,
             cov3D_precomp = cov3D_precomp,
-            error_helper = error_helper)
+            error_helper = error_helper,)
         
     # Apply exposure to rendered image (training only)
     if use_trained_exp:
