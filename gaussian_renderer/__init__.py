@@ -121,6 +121,18 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
+
+    # debug
+    print("rendered_image shape:", rendered_image.shape)
+    print("screenspace_points shape:", screenspace_points.shape)
+    print("radii shape:", radii.shape)
+    print("depth_image shape:", depth_image.shape)
+    print("error_render shape:", error_render.shape)
+
+    # Optional: Print numel for radii if shape looks fine but overflow still occurs
+    print("radii numel:", radii.numel())
+
+
     out = {
         "render": rendered_image,
         "viewspace_points": screenspace_points,
