@@ -184,7 +184,7 @@ class GaussianModel:
         self.pretrained_exposures = None
         exposure = torch.eye(3, 4, device="cuda")[None].repeat(len(cam_infos), 1, 1)
         self._exposure = nn.Parameter(exposure.requires_grad_(True))
-        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0]), device="cuda", requires_grad=True))
+        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
         self.E_k = torch.zeros((self.get_xyz.shape[0]))                                                         # maybe add ', device="cuda"'?
 
     def training_setup(self, training_args):
