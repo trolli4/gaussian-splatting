@@ -374,6 +374,8 @@ class GaussianModel:
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
         self.tmp_radii = self.tmp_radii[valid_points_mask]
+        self.e_k = self.e_k[valid_points_mask]
+        self.E_k = self.E_k[valid_points_mask]
 
     def cat_tensors_to_optimizer(self, tensors_dict):
         optimizable_tensors = {}
@@ -417,6 +419,9 @@ class GaussianModel:
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
+        # update to new gaussians
+        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
+        self.E_k = torch.zeros((self.get_xyz.shape[0])) 
 
     def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
         n_init_points = self.get_xyz.shape[0]
