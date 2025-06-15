@@ -147,7 +147,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         phi_ERR = error_render                                                      # error_render returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
         L_aux.backward()
-        dL_aux_derror_helper = gaussians.get_e_k.grad()
+        dL_aux_derror_helper = gaussians.get_e_k.grad
         print(dL_aux_derror_helper)
 
         iter_end.record()
