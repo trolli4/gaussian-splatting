@@ -140,7 +140,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         else:
             Ll1depth = 0
 
-        loss.backward()
+        loss.backward(retain_graph=True)
 
         # error-based densification
         per_pixel_error = torch.abs(image - gt_image)
