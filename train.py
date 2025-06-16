@@ -149,9 +149,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
         L_aux.backward()
         dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
-        print("dL_aux_..: \n", dL_aux_derror_helper)
-        print("E_k: ", gaussians.E_k)
-        gaussians.E_k = torch.max(gaussians.E_k, dL_aux_derror_helper)              # set E_k to max(E_k, E_k_pi)
+        print("dL_aux_..: \n", dL_aux_derror_helper, "\n", dL_aux_derror_helper.shape)
+        print("E_k: ", gaussians.E_k, "\n", gaussians.E_k.shape)
+        gaussians.E_k = torch.max(gaussians.E_k, dL_aux_derror_helper.detach().cpu())              # set E_k to max(E_k, E_k_pi)
         # log_variable("error_gradient", dL_aux_derror_helper)
         # log_variable("E_k", gaussians.E_k)
         gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
