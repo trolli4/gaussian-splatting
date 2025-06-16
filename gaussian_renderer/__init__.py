@@ -57,15 +57,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     opacity = pc.get_opacity
     error_helper = pc.get_e_k
 
-    # debug
-    print("error_helper shape:", error_helper.shape)
-    print("any NaNs:", torch.isnan(error_helper).any().item())
-
-    print("opacity shape:", opacity.shape)
-    print("any NaNs:", torch.isnan(opacity).any().item())
-
-
-
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
     scales = None
