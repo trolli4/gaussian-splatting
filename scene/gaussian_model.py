@@ -359,7 +359,7 @@ class GaussianModel:
         return optimizable_tensors
 
     def prune_points(self, mask):
-        valid_points_mask = ~mask
+        valid_points_mask = ~mask.cpu()
         optimizable_tensors = self._prune_optimizer(valid_points_mask)
 
         self._xyz = optimizable_tensors["xyz"]
