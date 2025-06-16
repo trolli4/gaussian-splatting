@@ -11,6 +11,7 @@
 
 import os
 import torch
+import numpy as np                                                  # used for logging tensor values
 from random import randint
 from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render, network_gui
@@ -147,9 +148,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         phi_ERR = error_render                                                      # error_render returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
         L_aux.backward()
-        dL_aux_derror_helper = gaussians.get_e_k.grad
+        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
+        gaussians.E_k = torch.max(gaussians.E_k, dL_aux_derror_helper)              # set E_k to max(E_k, E_k_pi)
+        log_variable("error_gradient", dL_aux_derror_helper)
+        log_variable("E_k", gaussians.E_k)
         gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
-        print(dL_aux_derror_helper)
 
         iter_end.record()
 
@@ -198,6 +201,24 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+
+def log_variable(filename: str, variable: any):
+    try:
+        temp_var = variable
+        filename = "/home/s76mfroe_hpc/gaussian-splatting/" + filename + ".txt"
+
+        if temp_var.requires_grad:
+            temp_var = temp_var.detach()
+        if temp_var.is_cuda:
+            temp_var = temp_var.cpu()
+
+        temp_var = temp_var.numpy()
+        with open(filename, "a") as f:
+            np.savetxt("\n===================")
+            np.savetxt(f, [temp_var], fmt="%.6f", delimiter=",")
+            np.savetxt("===================\n")
+    except:
+        pass
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
