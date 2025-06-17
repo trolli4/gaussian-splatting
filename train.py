@@ -208,22 +208,21 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
 
 def log_variable(filename: str, variable: any):
-    try:
-        temp_var = variable
-        filename = "/home/s76mfroe_hpc/gaussian-splatting/" + filename + ".txt"
 
-        if temp_var.requires_grad:
-            temp_var = temp_var.detach()
-        if temp_var.is_cuda:
-            temp_var = temp_var.cpu()
+    temp_var = variable
+    filename = "/home/s76mfroe_hpc/gaussian-splatting/" + filename + ".txt"
 
-        temp_var = temp_var.numpy()
-        with open(filename, "a") as f:
-            np.savetxt("\n===================")
-            np.savetxt(f, [temp_var], fmt="%.6f", delimiter=",")
-            np.savetxt("===================\n")
-    except:
-        pass
+    if temp_var.requires_grad:
+        temp_var = temp_var.detach()
+    if temp_var.is_cuda:
+        temp_var = temp_var.cpu()
+
+    temp_var = temp_var.numpy()
+    with open(filename, "a") as f:
+        f.write("\n===================")
+        np.savetxt(f, [temp_var], fmt="%.6f", delimiter=",")
+        f.write("===================\n")
+        
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
