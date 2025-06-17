@@ -148,7 +148,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         phi_ERR = error_render                                                      # error_render returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
         L_aux.backward()
-        print("e_k requires grad? ", gaussians.get_e_k.requires_grad)
+        print("e_k requires grad? (L_aux)", gaussians.get_e_k.requires_grad)
         dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
         print("=================\n\nIteration: ", iteration) 
         print("dL_aux_..: \n", dL_aux_derror_helper)
@@ -187,7 +187,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
                     gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
-                
+                    print("e_k requires grad? (L_aux)", gaussians.get_e_k.requires_grad)
+
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
 
