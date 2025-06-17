@@ -470,9 +470,12 @@ class GaussianModel:
         grads = self.xyz_gradient_accum / self.denom                                # normalization
         grads[grads.isnan()] = 0.0
 
+        print("e_k requires grad? (densify_and_prune 1)", self.get_e_k.requires_grad)
         self.tmp_radii = radii
         self.densify_and_clone(grads, max_grad, extent)
+        print("e_k requires grad? (densify_and_prune 2)", self.get_e_k.requires_grad)
         self.densify_and_split(grads, max_grad, extent)
+        print("e_k requires grad? (densify_and_prune 3)", self.get_e_k.requires_grad)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
@@ -480,6 +483,7 @@ class GaussianModel:
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
         self.prune_points(prune_mask)
+        print("e_k requires grad? (densify_and_prune 4)", self.get_e_k.requires_grad)
         tmp_radii = self.tmp_radii
         self.tmp_radii = None
 
