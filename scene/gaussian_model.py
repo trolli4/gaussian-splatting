@@ -185,7 +185,7 @@ class GaussianModel:
         exposure = torch.eye(3, 4, device="cuda")[None].repeat(len(cam_infos), 1, 1)
         self._exposure = nn.Parameter(exposure.requires_grad_(True))
         self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
-        self.E_k = torch.zeros((self.get_xyz.shape[0]))                                                         # maybe add ', device="cuda"'?
+        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda")                                                         # maybe add ', device="cuda"'?
 
     def training_setup(self, training_args):
         self.percent_dense = training_args.percent_dense
@@ -421,7 +421,7 @@ class GaussianModel:
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
         # update to new gaussians
         self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
-        self.E_k = torch.zeros((self.get_xyz.shape[0])) 
+        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda") 
 
     def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
         n_init_points = self.get_xyz.shape[0]

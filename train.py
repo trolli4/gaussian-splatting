@@ -154,7 +154,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         print("dL_aux_..: \n", dL_aux_derror_helper)
         print("E_k: ", gaussians.E_k) """
         with torch.no_grad():
-            gaussians.E_k.copy_(torch.max(gaussians.E_k, dL_aux_derror_helper.detach().cpu()))
+            gaussians.E_k.copy_(torch.max(gaussians.E_k, dL_aux_derror_helper.detach()))
         # log_variable("error_gradient", dL_aux_derror_helper)
         # log_variable("E_k", gaussians.E_k)
         gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
