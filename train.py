@@ -220,7 +220,7 @@ def log_variable(filename: str, variable: any):
     temp_var = temp_var.numpy()
     with open(filename, "a") as f:
         f.write("\n===================")
-        np.savetxt(f, [temp_var], fmt="%.6f", delimiter=",")
+        np.savetxt(f, temp_var, fmt="%.6f", delimiter=",")
         f.write("===================\n")
         
 
