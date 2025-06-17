@@ -186,8 +186,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    print("e_k requires grad? (Densification 1)", gaussians.get_e_k.requires_grad)
                     gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
-                    print("e_k requires grad? (L_aux)", gaussians.get_e_k.requires_grad)
+                    print("e_k requires grad? (Densification 2)", gaussians.get_e_k.requires_grad)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
