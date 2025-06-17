@@ -374,9 +374,7 @@ class GaussianModel:
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
         self.tmp_radii = self.tmp_radii[valid_points_mask]
-        print("e_k requires grad? (prune_points 1)", self.get_e_k.requires_grad, self.get_e_k.device)
         self.e_k = nn.Parameter(self.e_k.data[valid_points_mask].clone(), requires_grad=True)
-        print("e_k requires grad? (prune_points 2)", self.get_e_k.requires_grad, self.get_e_k.device)
         self.E_k = self.E_k[valid_points_mask]
 
     def cat_tensors_to_optimizer(self, tensors_dict):
@@ -426,7 +424,6 @@ class GaussianModel:
         self.E_k = torch.zeros((self.get_xyz.shape[0])) 
 
     def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
-        print("e_k requires grad? (densify_and_split 1)", self.get_e_k.requires_grad)
         n_init_points = self.get_xyz.shape[0]
         # Extract points that satisfy the gradient condition
         padded_grad = torch.zeros((n_init_points), device="cuda")
@@ -447,13 +444,10 @@ class GaussianModel:
         new_opacity = self._opacity[selected_pts_mask].repeat(N,1)
         new_tmp_radii = self.tmp_radii[selected_pts_mask].repeat(N)
 
-        print("e_k requires grad? (densify_and_split 2)", self.get_e_k.requires_grad)
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_tmp_radii)
 
-        print("e_k requires grad? (densify_and_split 3)", self.get_e_k.requires_grad)
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
-        print("e_k requires grad? (densify_and_split 4)", self.get_e_k.requires_grad)
 
     def densify_and_clone(self, grads, grad_threshold, scene_extent):
         # Extract points that satisfy the gradient condition
@@ -476,12 +470,9 @@ class GaussianModel:
         grads = self.xyz_gradient_accum / self.denom                                # normalization
         grads[grads.isnan()] = 0.0
 
-        print("e_k requires grad? (densify_and_prune 1)", self.get_e_k.requires_grad)
         self.tmp_radii = radii
         self.densify_and_clone(grads, max_grad, extent)
-        print("e_k requires grad? (densify_and_prune 2)", self.get_e_k.requires_grad)
         self.densify_and_split(grads, max_grad, extent)
-        print("e_k requires grad? (densify_and_prune 3)", self.get_e_k.requires_grad)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
@@ -489,7 +480,6 @@ class GaussianModel:
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
         self.prune_points(prune_mask)
-        print("e_k requires grad? (densify_and_prune 4)", self.get_e_k.requires_grad)
         tmp_radii = self.tmp_radii
         self.tmp_radii = None
 
