@@ -72,7 +72,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):
-        if network_gui.conn == None:
+        # commented out during testing
+        """ if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
             try:
@@ -85,7 +86,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if do_training and ((iteration < int(opt.iterations)) or not keep_alive):
                     break
             except Exception as e:
-                network_gui.conn = None
+                network_gui.conn = None """
 
         iter_start.record()
 
