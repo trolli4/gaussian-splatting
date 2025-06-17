@@ -374,7 +374,9 @@ class GaussianModel:
         self.denom = self.denom[valid_points_mask]
         self.max_radii2D = self.max_radii2D[valid_points_mask]
         self.tmp_radii = self.tmp_radii[valid_points_mask]
+        print("e_k requires grad? (prune_points 1)", self.get_e_k.requires_grad, self.get_e_k.device)
         self.e_k = self.e_k[valid_points_mask]
+        print("e_k requires grad? (prune_points 2)", self.get_e_k.requires_grad, self.get_e_k.device)
         self.E_k = self.E_k[valid_points_mask]
 
     def cat_tensors_to_optimizer(self, tensors_dict):
