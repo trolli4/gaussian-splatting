@@ -424,6 +424,7 @@ class GaussianModel:
         self.E_k = torch.zeros((self.get_xyz.shape[0])) 
 
     def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
+        print("e_k requires grad? (densify_and_split 1)", self.get_e_k.requires_grad)
         n_init_points = self.get_xyz.shape[0]
         # Extract points that satisfy the gradient condition
         padded_grad = torch.zeros((n_init_points), device="cuda")
@@ -444,10 +445,13 @@ class GaussianModel:
         new_opacity = self._opacity[selected_pts_mask].repeat(N,1)
         new_tmp_radii = self.tmp_radii[selected_pts_mask].repeat(N)
 
+        print("e_k requires grad? (densify_and_split 2)", self.get_e_k.requires_grad)
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, new_tmp_radii)
 
+        print("e_k requires grad? (densify_and_split 3)", self.get_e_k.requires_grad)
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
+        print("e_k requires grad? (densify_and_split 4)", self.get_e_k.requires_grad)
 
     def densify_and_clone(self, grads, grad_threshold, scene_extent):
         # Extract points that satisfy the gradient condition
