@@ -6,7 +6,7 @@
 #SBATCH --job-name=gs_train
 
 # Activate environment
-source activate gaussian_splatting
+source activate gaussian_splatting_old
 
 # Run training
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
