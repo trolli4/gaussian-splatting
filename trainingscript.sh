@@ -10,4 +10,4 @@ source activate gaussian_splatting_old
 
 # Run training
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden
+    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/original-3dgs
