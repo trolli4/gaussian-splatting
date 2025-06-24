@@ -18,7 +18,7 @@ do
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train_${threshold}
-#SBATCH --output=logs/turn_${turn}/garden_${threshold}.out
+#SBATCH --output=logs/reworked_turn_${turn}/garden_${threshold}.out
 
 # Activate environment
 source activate gaussian_splatting
