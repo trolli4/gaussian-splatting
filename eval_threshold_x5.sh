@@ -1,6 +1,10 @@
 #!/bin/bash
 [ ! -d "./logs/" ] && mkdir "./logs/"
 
+# Loop 5 times to remove statistical influence
+for turn in {1..5..1}
+do
+
 # Loop over threshold values from 20 to 110 in steps of 10
 for threshold in {20..110..10}
 do
@@ -14,30 +18,29 @@ do
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train_${threshold}
-#SBATCH --output=logs/garden_${threshold}.out
+#SBATCH --output=logs/turn_${turn}/garden_${threshold}.out
 
 # Activate environment
 source activate gaussian_splatting
 
-: << 'COMMENT'
 # Run training with custom threshold
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
-    -m output/garden_${threshold} \\
+    -m output/turn_${turn}/garden_${threshold} \\
     --quiet \\
     --eval \\
     --densify_error_threshold ${threshold}
-COMMENT
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m output/garden_${threshold}
+    -m output/turn_${turn}/garden_${threshold} \
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m output/garden_${threshold}
+    -m output/turn_${turn}/garden_${threshold}
 EOF
 
     # Submit the job
     sbatch $JOB_SCRIPT
 
 rm -v run_threshold_*.sh
+done
 done
