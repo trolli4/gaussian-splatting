@@ -123,6 +123,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     rendered_image = rendered_image.clamp(0, 1)
 
     # debug
+    print("radii shape:", radii.shape)
+    print("radii numel:", radii.numel())
     mask = (radii > 0)
     print("mask shape:", mask.shape, "numel:", mask.numel())
     print("mask.sum():", mask.sum().item())  # number of True values
