@@ -34,6 +34,10 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
 
+    print("Any NaNs in loaded scaling?", torch.isnan(gaussians._scaling).any().item())
+    print("Any NaNs in xyz?", torch.isnan(gaussians._xyz).any().item())
+    print("Any NaNs in rotation?", torch.isnan(gaussians._rotation).any().item())
+
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         rendering = render(view, gaussians, pipeline, background, use_trained_exp=train_test_exp, separate_sh=separate_sh)["render"]
         gt = view.original_image[0:3, :, :]
