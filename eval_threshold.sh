@@ -19,15 +19,13 @@ do
 # Activate environment
 source activate gaussian_splatting
 
-: << 'COMMENT'
 # Run training with custom threshold
-python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
     -m output/garden_${threshold} \\
     --quiet \\
     --eval \\
     --densify_error_threshold ${threshold}
-COMMENT
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
     -m output/garden_${threshold}
