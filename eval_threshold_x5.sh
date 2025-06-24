@@ -26,16 +26,16 @@ source activate gaussian_splatting
 # Run training with custom threshold
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
-    -m output/turn_${turn}/garden_${threshold} \\
+    -m output/reworked_turn_${turn}/garden_${threshold} \\
     --quiet \\
     --eval \\
     --densify_error_threshold ${threshold}
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m output/turn_${turn}/garden_${threshold} \
+    -m output/reworked_turn_${turn}/garden_${threshold} \
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m output/turn_${turn}/garden_${threshold}
+    -m output/reworked_turn_${turn}/garden_${threshold}
 EOF
 
     # Submit the job
