@@ -122,6 +122,12 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
 
+    # debug
+    mask = (radii > 0)
+    print("mask shape:", mask.shape, "numel:", mask.numel())
+    print("mask.sum():", mask.sum().item())  # number of True values
+    visibility_filter = mask.nonzero()
+    print("visibility_filter shape:", visibility_filter.shape)
 
     out = {
         "render": rendered_image,
