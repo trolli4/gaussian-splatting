@@ -31,9 +31,8 @@ COMMENT
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
     -m output/garden_${threshold} \
-    --quiet
 
-python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
     -m output/garden_${threshold}
 EOF
 
