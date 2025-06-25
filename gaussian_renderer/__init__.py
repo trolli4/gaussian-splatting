@@ -129,7 +129,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     print("mask shape:", mask.shape, "numel:", mask.numel())
     print("mask.sum():", mask.sum().item())  # number of True values
     print("radii dtype:", radii.dtype, "device:", radii.device, "min:", radii.min().item(), "max:", radii.max().item())
-    print("Any NaNs in radii?", torch.isnan(radii).any().item())
+    print("number of NaNs in radii:", torch.isnan(radii).sum().item())
     visibility_filter = mask.nonzero()
     print("visibility_filter shape:", visibility_filter.shape)
 
