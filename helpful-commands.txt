@@ -1,2 +1,4 @@
 nm -D /home/s76mfroe_hpc/.conda/envs/gaussian_splatting/lib/python3.9/site-packages/diff_gaussian_rasterization/_C.cpython-39-x86_64-linux-gnu.so | grep RasterizeGaussiansCUDA
 
+
+grep PSNR slurm-22378002.out 

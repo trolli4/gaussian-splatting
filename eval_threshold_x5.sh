@@ -1,6 +1,12 @@
 #!/bin/bash
 [ ! -d "./logs/" ] && mkdir "./logs/"
 
+# fill test_iterations with all iterations to compute PSNR at
+iterations_to_test="1000"
+for i in $(seq 2000 1000 30000); do
+     iterations_to_test+=" $i"
+done
+
 # Loop 5 times to remove statistical influence
 for turn in {1..5..1}
 do
@@ -27,15 +33,9 @@ source activate gaussian_splatting
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
     -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold} \\
-    --quiet \\
-    --eval \\
-    --densify_error_threshold ${threshold}
+    --densify_error_threshold ${threshold} \
+    --test_iterations $iterations_to_test
 
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold} \
-
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold}
 EOF
 
     # Submit the job
