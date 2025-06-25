@@ -122,6 +122,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
 
+    """
     # debug
     print("radii[:100]:", radii[:100])
     print("radii shape:", radii.shape)
@@ -133,6 +134,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     print("number of NaNs in radii:", torch.isnan(radii).sum().item())
     visibility_filter = mask.nonzero()
     print("visibility_filter shape:\n=====================", visibility_filter.shape)
+    """
 
     out = {
         "render": rendered_image,
