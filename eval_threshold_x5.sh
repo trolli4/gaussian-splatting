@@ -17,8 +17,8 @@ do
 #SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train_${threshold}
-#SBATCH --output=logs/reworked_turn_${turn}/garden_${threshold}.out
+#SBATCH --job-name=gs_${turn}_${threshold}
+#SBATCH --output=logs/turn_${turn}/garden_${threshold}.out
 
 # Activate environment
 source activate gaussian_splatting
@@ -26,16 +26,16 @@ source activate gaussian_splatting
 # Run training with custom threshold
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
-    -m output/reworked_turn_${turn}/garden_${threshold} \\
+    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold} \\
     --quiet \\
     --eval \\
     --densify_error_threshold ${threshold}
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m output/reworked_turn_${turn}/garden_${threshold} \
+    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold} \
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m output/reworked_turn_${turn}/garden_${threshold}
+    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold}
 EOF
 
     # Submit the job
