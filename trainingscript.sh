@@ -18,4 +18,4 @@ nvcc --version
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/error-based-densification
+    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/opacity-correction
