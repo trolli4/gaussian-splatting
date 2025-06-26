@@ -12,7 +12,7 @@ for turn in {1..5..1}
 do
 
 # Loop over threshold values from 20 to 110 in steps of 10
-for threshold in {20..110..10}
+for threshold in {1..20..1}
 do
     # Create a unique job script for this threshold
     JOB_SCRIPT="run_threshold_${threshold}.sh"
