@@ -1,6 +1,11 @@
 #!/bin/bash
 [ ! -d "./logs/" ] && mkdir "./logs/"
 
+iterations_to_test="1000"
+for i in $(seq 2000 1000 30000); do
+     iterations_to_test+=" $i"
+done
+
 # Loop over threshold values from 20 to 110 in steps of 10
 for counter in {1..10..1}
 do
@@ -23,10 +28,11 @@ source activate gaussian_splatting
 # Run training with custom threshold
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
-    -m output/garden_${counter} \\
-    --quiet \\
+    -m output/garden_${threshold} \\
+    # --quiet \\
     --eval \\
-    --densify_error_threshold ${threshold}
+    --densify_error_threshold ${threshold} \
+    --test_iterations $iterations_to_test
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
     -m output/garden_${counter}

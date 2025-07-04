@@ -8,7 +8,7 @@ for i in $(seq 2000 1000 30000); do
 done
 
 # Loop 5 times to remove statistical influence
-for turn in {1..5..1}
+for turn in {1..$1..1}
 do
 
 # Loop over threshold values from 20 to 110 in steps of 10
