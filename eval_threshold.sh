@@ -7,9 +7,8 @@ for i in $(seq 2000 1000 30000); do
 done
 
 # Loop over threshold values from 20 to 110 in steps of 10
-for counter in {1..10..1}
+for threshold in {1..10..1}
 do
-    threshold=$(echo "scale=2; $counter / 10" | bc)
     # Create a unique job script for this threshold
     JOB_SCRIPT="run_threshold_${threshold}.sh"
 
@@ -19,8 +18,8 @@ do
 #SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train_${counter}
-#SBATCH --output=logs/garden_${counter}.out
+#SBATCH --job-name=gs_train_${threshold}
+#SBATCH --output=logs/garden_${threshold}.out
 
 # Activate environment
 source activate gaussian_splatting
@@ -35,10 +34,10 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     --test_iterations $iterations_to_test
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m output/garden_${counter}
+    -m output/garden_${threshold}
 
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m output/garden_${counter}
+    -m output/garden_${threshold}
 EOF
 
     # Submit the job
