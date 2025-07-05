@@ -26,8 +26,11 @@ do
 #SBATCH --job-name=gs_${turn}_${threshold}
 #SBATCH --output=logs/turn_${turn}/garden_${threshold}.out
 
+# Source conda.sh to enable 'conda activate' in this script
+source $(conda info --base)/etc/profile.d/conda.sh
+
 # Activate environment
-source activate gaussian_splatting
+conda activate gaussian_splatting
 
 # Run training with custom threshold
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
