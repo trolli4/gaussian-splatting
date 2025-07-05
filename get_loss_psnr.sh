@@ -28,16 +28,9 @@ source activate gaussian_splatting
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
     -m output/garden_${threshold} \\
-    # --quiet \\
-    # --eval \\
     --densify_error_threshold ${threshold} \
     --test_iterations $iterations_to_test
 
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
-    -m output/garden_${threshold}
-
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m output/garden_${threshold}
 EOF
 
     # Submit the job
