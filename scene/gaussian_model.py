@@ -459,7 +459,7 @@ class GaussianModel:
         new_features_dc = self._features_dc[selected_pts_mask]
         new_features_rest = self._features_rest[selected_pts_mask]
         self._opacity[selected_pts_mask] = 1 - torch.sqrt(1 - self._opacity[selected_pts_mask])         # equation from local revising densification paper: 
-        new_opacities = self._opacity[selected_pts_mask]*(1 - self._opacity[selected_pts_mask])         # alpha_new = 1 - sqrt(1 - alpha) // alpha_new_2 = alpha_new*(1 - alpha_new)
+        new_opacities = self._opacity[selected_pts_mask]                                                # alpha_new = 1 - sqrt(1 - alpha)
         new_scaling = self._scaling[selected_pts_mask]
         new_rotation = self._rotation[selected_pts_mask]
 
