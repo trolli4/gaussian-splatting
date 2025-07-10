@@ -23,6 +23,5 @@ conda activate gaussian_splatting
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
     -m "$MODEL_PATH" \
-    --eval \
     --test_iterations $iterations_to_test
 
