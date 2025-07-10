@@ -3,7 +3,7 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train
+#SBATCH --job-name=gs_setup
 
 module purge
 module load Miniforge3
