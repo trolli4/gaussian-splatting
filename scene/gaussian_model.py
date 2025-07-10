@@ -453,10 +453,15 @@ class GaussianModel:
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, radii):
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
+        num_gaussians = self._xyz.shape[0]
+        max_new_gaussians = int(0.05 * num_gaussians)                       # increase number of gaussians by at most 5%
+        masked_grads = torch.zeros_like(grads)
+        _, max_k_indices = torch.topk(grads, max_new_gaussians)
+        masked_grads[max_k_indices] = grads[max_k_indices]
 
         self.tmp_radii = radii
-        self.densify_and_clone(grads, max_grad, extent)
-        self.densify_and_split(grads, max_grad, extent)
+        self.densify_and_clone(masked_grads, max_grad, extent)
+        self.densify_and_split(masked_grads, max_grad, extent)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
