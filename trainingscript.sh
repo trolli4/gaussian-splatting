@@ -21,5 +21,5 @@ conda activate gaussian_splatting
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
     -m output/opacity-correction \
-    --test_iterations $iterations_to_test
-
+    --test_iterations $iterations_to_test \
+    # --densify_error_threshold 1
