@@ -466,13 +466,18 @@ class GaussianModel:
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_tmp_radii)
 
-    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii):
+    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians):
         errors = self.E_k
         errors[errors.isnan()] = 0.0
+        num_gaussians = self.E_k.shape[0]                                                                   # current num of gaussians
+        max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
+        masked_errors = torch.zeros_like(errors)
+        _, max_k_indices = torch.topk(errors, max_new_gaussians)
+        masked_errors[max_k_indices] = errors[max_k_indices]
 
         self.tmp_radii = radii
-        self.densify_and_clone(errors, error_threshold, extent)
-        self.densify_and_split(errors, error_threshold, extent)
+        self.densify_and_clone(masked_errors, error_threshold, extent)
+        self.densify_and_split(masked_errors, error_threshold, extent)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
