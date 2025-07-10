@@ -4,6 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
+#SBATCH --output=logs/garden_eval.out
 
 MODEL_PATH="output/garden_eval"
 
@@ -19,9 +20,10 @@ source $(conda info --base)/etc/profile.d/conda.sh
 # Activate environment
 conda activate gaussian_splatting
 
-# Run training
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m "$MODEL_PATH" \
-    --test_iterations $iterations_to_test
+echo "rendering.."
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
+    -m "$MODEL_PATH" 
 
+echo "evaluating.."
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
+    -m "$MODEL_PATH" 
