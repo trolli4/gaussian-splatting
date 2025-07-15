@@ -49,6 +49,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
+    # debug
+    debug_path = os.path.join(scene.model_path, "debug")
+    os.makedirs(debug_path, exist_ok=True)
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
     scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
@@ -157,19 +160,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         log_variable("E_k", gaussians.E_k) """
         gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
 
-        # debug
-        debug_path = os.path.join(scene.model_path, "debug")
-        os.makedirs(debug_path, exist_ok=True)
-
-        gt_img_show = ((gt_image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-        if 'app_image' in render_pkg:
-            img_show = ((render_pkg['app_image']).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-        else:
-            img_show = ((image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-        debug_images = np.concatenate([gt_img_show, img_show], axis=1)
-        cv2.imwrite(os.path.join(debug_path, "%05d"%iteration + "_" + viewpoint_cam.image_name + ".jpg"), debug_images)
-        sys.exit()
-
         iter_end.record()
 
         with torch.no_grad():
@@ -219,6 +209,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+                # debug
+                gt_img_show = ((gt_image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
+                if 'app_image' in render_pkg:
+                    img_show = ((render_pkg['app_image']).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
+                else:
+                    img_show = ((image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
+                debug_images = np.concatenate([gt_img_show, img_show], axis=1)
+                cv2.imwrite(os.path.join(debug_path, "%05d"%iteration + "_" + viewpoint_cam.image_name + ".jpg"), debug_images)
 
 def log_variable(filename: str, variable: any):
 
