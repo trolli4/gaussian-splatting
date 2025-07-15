@@ -168,6 +168,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             img_show = ((image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
         debug_images = np.concatenate([gt_img_show, img_show], axis=1)
         cv2.imwrite(os.path.join(debug_path, "%05d"%iteration + "_" + viewpoint_cam.image_name + ".jpg"), debug_images)
+        sys.exit()
 
         iter_end.record()
 
