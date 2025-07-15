@@ -249,6 +249,19 @@ class GaussianModel:
         return l
 
     def save_ply(self, path):
+
+        # Check for NaNs before saving
+        for name, tensor in {
+            "xyz": self._xyz,
+            "features_dc": self._features_dc,
+            "features_rest": self._features_rest,
+            "opacity": self._opacity,
+            "scaling": self._scaling,
+            "rotation": self._rotation
+        }.items():
+            if torch.isnan(tensor).any():
+                print(f"❌ NaN detected in {name} before saving!")
+                
         mkdir_p(os.path.dirname(path))
 
         xyz = self._xyz.detach().cpu().numpy()
@@ -315,6 +328,16 @@ class GaussianModel:
         rots = np.zeros((xyz.shape[0], len(rot_names)))
         for idx, attr_name in enumerate(rot_names):
             rots[:, idx] = np.asarray(plydata.elements[0][attr_name])
+
+        # debug
+        assert not np.isnan(scales).any(), "NaNs in loaded scales"
+        assert not np.isnan(rots).any(), "NaNs in loaded rotations"
+        # Clamp scales to avoid zero or negative sizes
+        scales = np.clip(scales, 1e-4, 1e2)
+        # Normalize rotations (assume quaternions)
+        rot_norms = np.linalg.norm(rots, axis=1, keepdims=True)
+        rot_norms = np.clip(rot_norms, 1e-6, np.inf)
+        rots = rots / rot_norms
 
         self._xyz = nn.Parameter(torch.tensor(xyz, dtype=torch.float, device="cuda").requires_grad_(True))
         self._features_dc = nn.Parameter(torch.tensor(features_dc, dtype=torch.float, device="cuda").transpose(1, 2).contiguous().requires_grad_(True))
