@@ -49,11 +49,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
+    gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
+    scene = Scene(dataset, gaussians)
     # debug
     debug_path = os.path.join(scene.model_path, "debug")
     os.makedirs(debug_path, exist_ok=True)
-    gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
-    scene = Scene(dataset, gaussians)
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
