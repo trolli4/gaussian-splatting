@@ -56,7 +56,6 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
         print("Positions:", gaussians.get_xyz.min(), gaussians.get_xyz.max())
         print("Opacities:", gaussians.get_opacity.min(), gaussians.get_opacity.max())
         print("Features:", gaussians.get_features.min(), gaussians.get_features.max())
-        print("Exposure:", gaussians.get_exposure.min(), gaussians.get_exposure.max())
 
         """ rotations = gaussians.get_rotation
         scales = gaussians.get_scaling
