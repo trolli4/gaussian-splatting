@@ -88,6 +88,16 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         colors_precomp = override_color
 
+    # debug
+    for name, tensor in {
+        "scales": scales,
+        "rotations": rotations,
+        "means3D": means3D,
+        "opacities": opacity
+    }.items():
+        if torch.isnan(tensor).any():
+            print(f"❌ NaNs in {name} during render")
+
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
         rendered_image, radii, depth_image, error_render = rasterizer(
@@ -112,6 +122,16 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             rotations = rotations,
             cov3D_precomp = cov3D_precomp,
             error_helper = error_helper,)
+        
+    # debug
+    for name, tensor in {
+        "scales": scales,
+        "rotations": rotations,
+        "means3D": means3D,
+        "opacities": opacity
+    }.items():
+        if torch.isnan(tensor).any():
+            print(f"❌ NaNs in {name} during render")
         
     # Apply exposure to rendered image (training only)
     if use_trained_exp:
