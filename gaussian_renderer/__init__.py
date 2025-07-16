@@ -96,7 +96,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         "opacities": opacity
     }.items():
         if torch.isnan(tensor).any():
-            print(f"❌ NaNs in {name} during render")
+            print(f"❌ {torch.isnan(tensor).sum().item()} NaNs in {name} during render")
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
@@ -131,7 +131,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         "opacities": opacity
     }.items():
         if torch.isnan(tensor).any():
-            print(f"❌ NaNs in {name} during render")
+            print(f"❌ {torch.isnan(tensor).sum().item()} NaNs in {name} during render")
         
     # Apply exposure to rendered image (training only)
     if use_trained_exp:

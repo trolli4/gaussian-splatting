@@ -260,7 +260,7 @@ class GaussianModel:
             "rotation": self._rotation
         }.items():
             if torch.isnan(tensor).any():
-                print(f"❌ NaN detected in {name} before saving!")
+                print(f"❌ {torch.isnan(tensor).sum().item()} NaN detected in {name} before saving!")
                 
         mkdir_p(os.path.dirname(path))
 
