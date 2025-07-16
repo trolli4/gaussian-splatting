@@ -6,7 +6,7 @@
 #SBATCH --job-name=gs_train
 #SBATCH --output=logs/garden_eval_debug.out
 
-MODEL_PATH="output/garden_eval_test_script"
+MODEL_PATH="output/garden_eval_debug"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
