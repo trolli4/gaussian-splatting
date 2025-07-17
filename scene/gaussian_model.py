@@ -249,24 +249,25 @@ class GaussianModel:
         return l
 
     def get_nan_mask(self):
-        tensors = {
-            "xyz": self._xyz,
-            "features_dc": self._features_dc,
-            "features_rest": self._features_rest,
-            "opacity": self._opacity,
-            "scaling": self._scaling,
-            "rotation": self._rotation
-        }
+        tensors = [
+            self._xyz,
+            self._features_dc,
+            self._features_rest,
+            self._opacity,
+            self._scaling,
+            self._rotation,
+        ]
 
         nan_masks = []
-        for name, tensor in tensors.items():
-            # Collapse all dims except the batch (Gaussian index) dim
-            nan_mask = torch.isnan(tensor).any(dim=tuple(range(1, tensor.ndim)))
+        for tensor in tensors:
+            # Flatten all but the first dimension to check for NaNs across features
+            reshaped = tensor.view(tensor.shape[0], -1)  # (N, F)
+            nan_mask = torch.isnan(reshaped).any(dim=1)  # (N,)
             nan_masks.append(nan_mask)
 
-        # Combine masks: True if any attribute has NaN
-        combined_nan_mask = torch.stack(nan_masks, dim=0).any(dim=0)
-        return combined_nan_mask  # shape: (N,)
+        # Combine all masks
+        combined_nan_mask = torch.stack(nan_masks, dim=0).any(dim=0)  # (N,)
+        return combined_nan_mask
 
     def save_ply(self, path):
 
