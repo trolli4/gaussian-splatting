@@ -51,11 +51,11 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
 
         # debug
-        print("Scales:", gaussians.get_scaling.min(), gaussians.get_scaling.max())
-        print("Rotations:", gaussians.get_rotation.min(), gaussians.get_rotation.max())
-        print("Positions:", gaussians.get_xyz.min(), gaussians.get_xyz.max())
-        print("Opacities:", gaussians.get_opacity.min(), gaussians.get_opacity.max())
-        print("Features:", gaussians.get_features.min(), gaussians.get_features.max())
+        print("Scales:", gaussians.get_scaling.shape, gaussians.get_scaling.min(), gaussians.get_scaling.max())
+        print("Rotations:", gaussians.get_rotation.shape, gaussians.get_rotation.min(), gaussians.get_rotation.max())
+        print("Positions:", gaussians.get_xyz.shape, gaussians.get_xyz.min(), gaussians.get_xyz.max())
+        print("Opacities:", gaussians.get_opacity.shape, gaussians.get_opacity.min(), gaussians.get_opacity.max())
+        print("Features:", gaussians.get_features.shape, gaussians.get_features.min(), gaussians.get_features.max())
 
         """ rotations = gaussians.get_rotation
         scales = gaussians.get_scaling

@@ -352,8 +352,7 @@ class GaussianModel:
             rots[:, idx] = np.asarray(plydata.elements[0][attr_name])
 
         # debug
-        # Check for NaNs before saving
-        print(f"Total number of Gaussians during load: {self._opacity.shape[0]}")
+        # Check for NaNs after laoding
         for name, tensor in {
             "xyz": self._xyz,
             "features_dc": self._features_dc,
@@ -364,6 +363,7 @@ class GaussianModel:
             "scales": scales,
             "rots": rots
         }.items():
+            print(f"Total number of entries in {name} during load: {tensor.shape}")
             if np.isnan(tensor).any():
                 print(f"❌ {np.isnan(tensor).sum().item()} NaN detected in {name} during load!")
 
