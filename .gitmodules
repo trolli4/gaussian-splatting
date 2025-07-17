@@ -4,7 +4,7 @@
 [submodule "submodules/diff-gaussian-rasterization"]
 	path = submodules/diff-gaussian-rasterization
 	url = https://github.com/trolli4/diff-gaussian-rasterization.git
-	branch = what-have-i-done
+	branch = debug_render
 [submodule "SIBR_viewers"]
 	path = SIBR_viewers
 	url = https://gitlab.inria.fr/sibr/sibr_core.git
