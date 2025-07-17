@@ -14,7 +14,7 @@ module load CUDA/11.8.0
 export CUDA_HOME=$CUDA_HOME
 
 # Clean existing env
-# conda env remove --name gaussian_splatting -y
+conda env remove --name gaussian_splatting_debug -y
 
 # Create environment
 conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
