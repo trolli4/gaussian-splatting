@@ -8,6 +8,8 @@
 
 MODEL_PATH="output/garden_eval_debug"
 
+rm -rf "$MODEL_PATH"
+
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
 for i in $(seq 2000 1000 30000); do
