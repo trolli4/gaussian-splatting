@@ -82,5 +82,7 @@ if __name__ == "__main__":
     safe_state(args.quiet)
 
     # debug pipeline
-    print("Pipeline:", pipeline.extract(args))
+    print("Pipeline parameters:")
+    for key, value in vars(pipeline.extract(args)).items():
+        print(f"{key}: {value}")
     render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, SPARSE_ADAM_AVAILABLE)

@@ -328,7 +328,10 @@ if __name__ == "__main__":
     """ if not args.disable_viewer:
         network_gui.init(args.ip, args.port) """
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    print("Pipeline:", pp.extract(args))
+    
+    print("Pipeline parameters:")
+    for key, value in vars(pp.extract(args)).items():
+        print(f"{key}: {value}")
     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
 
     # All done
