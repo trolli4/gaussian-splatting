@@ -330,6 +330,17 @@ class GaussianModel:
             rots[:, idx] = np.asarray(plydata.elements[0][attr_name])
 
         # debug
+        # Check for NaNs before saving
+        for name, tensor in {
+            "xyz": self._xyz,
+            "features_dc": self._features_dc,
+            "features_rest": self._features_rest,
+            "opacity": self._opacity,
+            "scaling": self._scaling,
+            "rotation": self._rotation
+        }.items():
+            if torch.isnan(tensor).any():
+                print(f"❌ {torch.isnan(tensor).sum().item()} NaN detected in {name} during load!")
         assert not np.isnan(scales).any(), "NaNs in loaded scales"
         assert not np.isnan(rots).any(), "NaNs in loaded rotations"
         # Clamp scales to avoid zero or negative sizes
