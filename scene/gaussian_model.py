@@ -251,6 +251,7 @@ class GaussianModel:
     def save_ply(self, path):
 
         # Check for NaNs before saving
+        print(f"Total number of Gaussians during save: {self._opacity.shape[0]}")
         for name, tensor in {
             "xyz": self._xyz,
             "features_dc": self._features_dc,
@@ -331,6 +332,7 @@ class GaussianModel:
 
         # debug
         # Check for NaNs before saving
+        print(f"Total number of Gaussians during load: {self._opacity.shape[0]}")
         for name, tensor in {
             "xyz": self._xyz,
             "features_dc": self._features_dc,
