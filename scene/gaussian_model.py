@@ -248,6 +248,26 @@ class GaussianModel:
             l.append('rot_{}'.format(i))
         return l
 
+    def get_nan_mask(self):
+        tensors = {
+            "xyz": self._xyz,
+            "features_dc": self._features_dc,
+            "features_rest": self._features_rest,
+            "opacity": self._opacity,
+            "scaling": self._scaling,
+            "rotation": self._rotation
+        }
+
+        nan_masks = []
+        for name, tensor in tensors.items():
+            # Collapse all dims except the batch (Gaussian index) dim
+            nan_mask = torch.isnan(tensor).any(dim=tuple(range(1, tensor.ndim)))
+            nan_masks.append(nan_mask)
+
+        # Combine masks: True if any attribute has NaN
+        combined_nan_mask = torch.stack(nan_masks, dim=0).any(dim=0)
+        return combined_nan_mask  # shape: (N,)
+
     def save_ply(self, path):
 
         # Check for NaNs before saving
@@ -518,6 +538,8 @@ class GaussianModel:
             big_points_vs = self.max_radii2D > max_screen_size
             big_points_ws = self.get_scaling.max(dim=1).values > 0.1 * extent
             prune_mask = torch.logical_or(torch.logical_or(prune_mask, big_points_vs), big_points_ws)
+        nan_mask = self.get_nan_mask()
+        prune_mask = torch.logical_or(prune_mask, nan_mask)
         self.prune_points(prune_mask)
         tmp_radii = self.tmp_radii
         self.tmp_radii = None
