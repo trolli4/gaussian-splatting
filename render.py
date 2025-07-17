@@ -57,11 +57,6 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
         print("Opacities:", gaussians.get_opacity.shape, gaussians.get_opacity.min(), gaussians.get_opacity.max())
         print("Features:", gaussians.get_features.shape, gaussians.get_features.min(), gaussians.get_features.max())
 
-        """ rotations = gaussians.get_rotation
-        scales = gaussians.get_scaling
-        print("rotations:", rotations)
-        print("scales:", scales) """
-
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 

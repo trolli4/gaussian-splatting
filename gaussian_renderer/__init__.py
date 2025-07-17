@@ -89,6 +89,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         colors_precomp = override_color
 
     # debug
+    print("debug before")
     for name, tensor in {
         "scales": scales,
         "rotations": rotations,
@@ -124,6 +125,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             error_helper = error_helper,)
         
     # debug
+    print("debug after")
     for name, tensor in {
         "scales": scales,
         "rotations": rotations,
