@@ -4,9 +4,9 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
-#SBATCH --output=logs/garden_eval_debug.out
+#SBATCH --output=logs/garden_eval_debug_prune.out
 
-MODEL_PATH="output/garden_eval_debug"
+MODEL_PATH="output/garden_eval_debug_prune"
 
 rm -rf "$MODEL_PATH"
 
