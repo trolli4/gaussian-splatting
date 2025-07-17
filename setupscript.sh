@@ -20,7 +20,7 @@ export CUDA_HOME=$CUDA_HOME
 conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
 
 # Activate environment
-source activate gaussian_splatting
+source activate gaussian_splatting_debug
 
 # Install C++/CUDA submodules (after torch is installed)
 pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
