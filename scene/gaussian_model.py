@@ -343,8 +343,8 @@ class GaussianModel:
             "scales": scales,
             "rots": rots
         }.items():
-            if torch.isnan(tensor).any():
-                print(f"❌ {torch.isnan(tensor).sum().item()} NaN detected in {name} during load!")
+            if np.isnan(tensor).any():
+                print(f"❌ {np.isnan(tensor).sum().item()} NaN detected in {name} during load!")
 
         assert not np.isnan(scales).any(), "NaNs in loaded scales"
         assert not np.isnan(rots).any(), "NaNs in loaded rotations"
