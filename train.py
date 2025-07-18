@@ -115,6 +115,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         # debug shape of residual opacity
         print("residual_opacity shape:", residual_opacity.shape)
+        average_residual_opacity = torch.mean(residual_opacity)
 
         # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
