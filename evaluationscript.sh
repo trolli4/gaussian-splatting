@@ -7,6 +7,7 @@
 #SBATCH --output=logs/garden_eval_fused.out
 
 MODEL_PATH="output/garden_eval_fused"
+rm -rf "$MODEL_PATH"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -25,7 +26,7 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
     -m "$MODEL_PATH" \
     --eval \
-    --test_iterations $iterations_to_test
+    --test_iterations $iterations_to_test \
     -r 8
 
 echo "evaluating.."
