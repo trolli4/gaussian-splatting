@@ -29,6 +29,7 @@ conda activate gaussian_splatting_old
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s "${BASE_DATASET_PATH}/${folder_name}" \\
     -m "${model_path}" \\
+    --disable_viewer \\
     -r 8
 EOF
 
