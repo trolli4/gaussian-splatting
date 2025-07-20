@@ -21,3 +21,4 @@ dependencies:
       - dearpygui
       - opencv-python
       - joblib==1.1.0
+      - numpy==1.23.5
