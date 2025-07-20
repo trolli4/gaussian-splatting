@@ -5,8 +5,11 @@
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
 
+# Source conda.sh to enable 'conda activate' in this script
+source $(conda info --base)/etc/profile.d/conda.sh
+
 # Activate environment
-source activate gaussian_splatting_old
+conda activate gaussian_splatting_old
 
 # Run training
 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
