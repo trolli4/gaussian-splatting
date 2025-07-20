@@ -10,7 +10,9 @@
 #
 
 import os
+from os import makedirs
 import torch
+import torchvision
 import numpy as np                                                  # used for logging tensor values
 from random import randint
 from utils.loss_utils import l1_loss, ssim
@@ -19,7 +21,6 @@ import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state, get_expon_lr_func
 import uuid
-import cv2
 from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
@@ -51,9 +52,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree, opt.optimizer_type)
     scene = Scene(dataset, gaussians)
-    # debug
-    debug_path = os.path.join(scene.model_path, "debug")
-    os.makedirs(debug_path, exist_ok=True)
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
@@ -179,16 +177,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
 
-            if (iteration in testing_iterations):
-                # debug
-                gt_img_show = ((gt_image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-                if 'app_image' in render_pkg:
-                    img_show = ((render_pkg['app_image']).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-                else:
-                    img_show = ((image).permute(1,2,0).clamp(0,1)[:,:,[2,1,0]]*255).detach().cpu().numpy().astype(np.uint8)
-                debug_images = np.concatenate([gt_img_show, img_show], axis=1)
-                cv2.imwrite(os.path.join(debug_path, "%05d"%iteration + "_" + viewpoint_cam.image_name + ".jpg"), debug_images)
-
             # Densification
             if iteration < opt.densify_until_iter:
                 # Keep track of max radii in image-space for pruning
@@ -199,7 +187,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     # TODO: figure out which value for error_threshhold is best
                     # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians)
+                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
@@ -219,7 +207,31 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
-                
+
+    # after training
+    with torch.no_grad():
+        render_set(dataset.model_path, "train", scene.loaded_iter, scene.getTrainCameras(), gaussians, pipe, background, dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
+        render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipe, background, dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
+
+
+def render_set(model_path, name, iteration, views, gaussians, pipeline, background, train_test_exp, separate_sh):
+    render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
+    gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
+
+    makedirs(render_path, exist_ok=True)
+    makedirs(gts_path, exist_ok=True)
+
+    for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
+        rendering = render(view, gaussians, pipeline, background, use_trained_exp=train_test_exp, separate_sh=separate_sh, is_training=False)["render"]
+        gt = view.original_image[0:3, :, :]
+
+        if args.train_test_exp:
+            rendering = rendering[..., rendering.shape[-1] // 2:]
+            gt = gt[..., gt.shape[-1] // 2:]
+
+        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
+
 
 def log_variable(filename: str, variable: any):
 

@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_short
-#SBATCH --time=3:00:00
+#SBATCH --partition=mlgpu_devel
+#SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
+#SBATCH --output=logs/garden_eval_fused.out
 
-error_threshold=5
-MODEL_PATH="output/garden_eval"
+MODEL_PATH="output/garden_eval_fused"
+rm -rf "$MODEL_PATH"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -20,9 +21,14 @@ source $(conda info --base)/etc/profile.d/conda.sh
 # Activate environment
 conda activate gaussian_splatting
 
-# Run training
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+echo "training & rendering.."
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render_metrics.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
     -m "$MODEL_PATH" \
+    --eval \
     --test_iterations $iterations_to_test \
-    --densify_error_threshold $error_threshold
+    -r 8
+
+echo "evaluating.."
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
+    -m "$MODEL_PATH" 
