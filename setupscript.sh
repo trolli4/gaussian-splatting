@@ -14,13 +14,13 @@ module load CUDA/11.8.0
 export CUDA_HOME=$CUDA_HOME
 
 # Clean existing env
-conda env remove --name gaussian_splatting -y
+conda env remove --name gaussian_splatting_tensorboard -y
 
 # Create environment
 conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
 
 # Activate environment
-source activate gaussian_splatting
+source activate gaussian_splatting_tensorboard
 
 # Install C++/CUDA submodules (after torch is installed)
 pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
