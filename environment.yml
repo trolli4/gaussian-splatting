@@ -1,4 +1,4 @@
-name: gaussian_splatting_old
+name: gaussian_splatting_opacity_reset_only
 channels:
   - conda-forge
   - defaults
