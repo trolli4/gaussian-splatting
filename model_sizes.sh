@@ -11,13 +11,13 @@ mkdir -p "$LOG_DIR"
 for folder in "$BASE_DATASET_PATH"/*; do
     if [ -d "$folder" ]; then
         folder_name=$(basename "$folder")
-        log_file="${LOG_DIR}/${folder_name}.out"
-        model_path="output/${folder_name}"
+        log_file="${LOG_DIR}/original/eval/${folder_name}.out"
+        model_path="output/original/eval/${folder_name}"
 
         sbatch <<EOF
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train_${folder_name}
@@ -30,7 +30,14 @@ python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s "${BASE_DATASET_PATH}/${folder_name}" \\
     -m "${model_path}" \\
     --disable_viewer \\
-    -r 8
+    #-r 8 \\
+    --eval
+
+python /home/s76mfroe_hpc/gaussian-splatting/render.py \\
+    -m "${model_path}"
+
+python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \\
+    -m "${model_path}" 
 EOF
 
     fi
