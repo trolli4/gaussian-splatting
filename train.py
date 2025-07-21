@@ -113,10 +113,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
         image, viewspace_point_tensor, visibility_filter, radii, error_render, residual_opacity = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"], render_pkg["residual_opacity"]
 
-        # debug shape of residual opacity
-        print("residual_opacity shape:", residual_opacity.shape)
-        average_residual_opacity = torch.mean(residual_opacity)
-
         # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
             alpha_mask = viewpoint_cam.alpha_mask.cuda()
@@ -145,6 +141,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             Ll1depth = Ll1depth.item()                                              # Converts to float (for logging/debugging)
         else:
             Ll1depth = 0
+
+        # debug shape of residual opacity
+        print("residual_opacity shape:", residual_opacity.shape)
+        average_residual_opacity = torch.mean(residual_opacity)
+        weighted_opacity_loss = 0.1 * average_residual_opacity
+
+        loss += weighted_opacity_loss
 
         loss.backward(retain_graph=True)
 
