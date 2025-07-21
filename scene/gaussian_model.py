@@ -256,7 +256,8 @@ class GaussianModel:
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
 
-    def reset_opacity(self, opacity_reduction):
+    def reset_opacity(self):
+        opacity_reduction = 0.001
         opacities_new = torch.max(self.get_opacity - opacity_reduction, torch.zeros_like(self.get_opacity))
         optimizable_tensors = self.replace_tensor_to_optimizer(opacities_new, "opacity")
         self._opacity = optimizable_tensors["opacity"]
