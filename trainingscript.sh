@@ -1,16 +1,21 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
-#SBATCH --gpus=1
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=3:00:00
+#SBATCH --gpus=2
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
 
-# Source conda.sh to enable 'conda activate' in this script
-source $(conda info --base)/etc/profile.d/conda.sh
-
 # Activate environment
-conda activate gaussian_splatting_old
+source activate gaussian_splatting
+
+# debug
+which python
+python -c "import torch; print(torch.cuda.is_available())"
+python -c "import torch; print(torch.__version__, torch.version.cuda)"
+module load CUDA/11.8.0
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+nvcc --version
 
 # Run training
-python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/original-3dgs
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/error-based-densification

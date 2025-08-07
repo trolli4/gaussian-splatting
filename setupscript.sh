@@ -3,7 +3,7 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train
+#SBATCH --job-name=gs_setup
 
 module purge
 module load Miniforge3
@@ -14,13 +14,13 @@ module load CUDA/11.8.0
 export CUDA_HOME=$CUDA_HOME
 
 # Clean existing env
-conda env remove --name gaussian_splatting_old -y
+conda env remove --name gaussian_splatting -y
 
 # Create environment
 conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
 
 # Activate environment
-source activate gaussian_splatting_old
+source activate gaussian_splatting
 
 # Install C++/CUDA submodules (after torch is installed)
 pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \

@@ -45,15 +45,6 @@ index 0055cb1..3f166db 100644
  
  #### computeColorFromSH()
  
-@@ -137,4 +139,5 @@
- #### add_densification_stats()
- 
- ## train.py
--- calculates camera view (around line 111, ff.)
-\ No newline at end of file
-+- calculates camera view (around line 111, ff.)
-+- utilize ``loss.backward()`` (line 142)
-\ No newline at end of file
 diff --git a/README.md b/README.md
 index eb2cf6c..fd80a28 100644
 --- a/README.md

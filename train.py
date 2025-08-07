@@ -11,6 +11,7 @@
 
 import os
 import torch
+import numpy as np                                                  # used for logging tensor values
 from random import randint
 from utils.loss_utils import l1_loss, ssim
 from gaussian_renderer import render, network_gui
@@ -71,7 +72,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):
-        if network_gui.conn == None:
+        # commented out during testing
+        """ if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
             try:
@@ -84,7 +86,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 if do_training and ((iteration < int(opt.iterations)) or not keep_alive):
                     break
             except Exception as e:
-                network_gui.conn = None
+                network_gui.conn = None """
 
         iter_start.record()
 
@@ -109,8 +111,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
-        image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
 
+        # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
             alpha_mask = viewpoint_cam.alpha_mask.cuda()
             image *= alpha_mask
@@ -128,18 +131,30 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Depth regularization
         Ll1depth_pure = 0.0
         if depth_l1_weight(iteration) > 0 and viewpoint_cam.depth_reliable:
-            invDepth = render_pkg["depth"]
-            mono_invdepth = viewpoint_cam.invdepthmap.cuda()
+            invDepth = render_pkg["depth"]                                          # model's predicted depth map
+            mono_invdepth = viewpoint_cam.invdepthmap.cuda()                        # reference inverse depth map
             depth_mask = viewpoint_cam.depth_mask.cuda()
 
             Ll1depth_pure = torch.abs((invDepth  - mono_invdepth) * depth_mask).mean()
             Ll1depth = depth_l1_weight(iteration) * Ll1depth_pure 
             loss += Ll1depth
-            Ll1depth = Ll1depth.item()
+            Ll1depth = Ll1depth.item()                                              # Converts to float (for logging/debugging)
         else:
             Ll1depth = 0
 
-        loss.backward()
+        loss.backward(retain_graph=True)
+
+        # error-based densification
+        per_pixel_error = torch.abs(image - gt_image)
+        phi_ERR = error_render                                                      # error_render returned by render(..)
+        L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
+        L_aux.backward()
+        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
+        with torch.no_grad():
+            torch.maximum(gaussians.E_k, dL_aux_derror_helper.detach().squeeze(-1), out=gaussians.E_k)
+        """ log_variable("error_gradient", dL_aux_derror_helper)
+        log_variable("E_k", gaussians.E_k) """
+        gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
 
         iter_end.record()
 
@@ -149,7 +164,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             ema_Ll1depth_for_log = 0.4 * Ll1depth + 0.6 * ema_Ll1depth_for_log
 
             if iteration % 10 == 0:
-                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}"})
+                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}\n"})
                 progress_bar.update(10)
             if iteration == opt.iterations:
                 progress_bar.close()
@@ -167,9 +182,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
+                    # TODO: figure out which value for error_threshhold is best
+                    # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
-                
+                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
+
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
 
@@ -188,6 +205,23 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+
+def log_variable(filename: str, variable: any):
+
+    temp_var = variable
+    filename = "/home/s76mfroe_hpc/gaussian-splatting/" + filename + ".txt"
+
+    if temp_var.requires_grad:
+        temp_var = temp_var.detach()
+    if temp_var.is_cuda:
+        temp_var = temp_var.cpu()
+
+    temp_var = temp_var.numpy()
+    with open(filename, "a") as f:
+        f.write("\n===================")
+        np.savetxt(f, temp_var, fmt="%.6f", delimiter=",")
+        f.write("===================\n")
+
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
@@ -275,9 +309,9 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    # Start GUI server, configure and run training
-    if not args.disable_viewer:
-        network_gui.init(args.ip, args.port)
+    # Start GUI server, configure and run training - commented out during testing
+    """ if not args.disable_viewer:
+        network_gui.init(args.ip, args.port) """
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
 
