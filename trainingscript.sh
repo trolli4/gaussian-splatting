@@ -3,8 +3,8 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train
-#SBATCH --output=logs/garden_original_opacity_reset.out
+#SBATCH --job-name=gs_op_reset
+#SBATCH --output=logs/garden_opacity_reset.out
 
 error_threshold=5
 MODEL_PATH="output/garden_original_opacity_reset"
@@ -19,7 +19,7 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting
+conda activate gaussian_splatting_opacity_reset
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \

@@ -90,7 +90,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     if separate_sh:
-        rendered_image, radii, depth_image, error_render = rasterizer(
+        rendered_image, radii, depth_image, error_render, residual_opacity_pixels = rasterizer(
             means3D = means3D,
             means2D = means2D,
             dc = dc,
@@ -102,7 +102,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             cov3D_precomp = cov3D_precomp,
             error_helper = error_helper,)
     else:
-        rendered_image, radii, depth_image, error_render = rasterizer(
+        rendered_image, radii, depth_image, error_render, residual_opacity_pixels = rasterizer(
             means3D = means3D,
             means2D = means2D,
             shs = shs,
@@ -122,6 +122,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
 
+<<<<<<< HEAD
     if is_training:
         out = {
             "render": rendered_image,
@@ -140,5 +141,4 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             "depth" : depth_image,
             "error_render" : error_render
             }
-    
     return out
