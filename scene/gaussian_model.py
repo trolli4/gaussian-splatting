@@ -453,6 +453,7 @@ class GaussianModel:
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, radii, max_number_gaussians):
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
+        print("grads shape:", grads.shape)
         print("xyz shape:",self._xyz.shape)
         num_gaussians = self._xyz.shape[0]                                                                  # current num of gaussians
         max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
