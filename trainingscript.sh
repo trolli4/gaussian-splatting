@@ -1,21 +1,28 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_short
-#SBATCH --time=3:00:00
-#SBATCH --gpus=2
+#SBATCH --partition=mlgpu_devel
+#SBATCH --time=1:00:00
+#SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_train
+#SBATCH --job-name=gs_error_based
+#SBATCH --output=logs/garden_error_based_densification_only.out
+
+
+# fill test_iterations with all iterations to compute PSNR at
+iterations_to_test="1000"
+for i in $(seq 2000 1000 30000); do
+     iterations_to_test+=" $i"
+done
+
+# Source conda.sh to enable 'conda activate' in this script
+source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-source activate gaussian_splatting
-
-# debug
-which python
-python -c "import torch; print(torch.cuda.is_available())"
-python -c "import torch; print(torch.__version__, torch.version.cuda)"
-module load CUDA/11.8.0
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-nvcc --version
+conda activate gaussian_splatting
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/error-based-densification
+    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
+    -m output/garden_error_based_densification_only \
+    --test_iterations $iterations_to_test \
+    -r 8 \
+    --disable_viewer
