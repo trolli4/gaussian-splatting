@@ -24,4 +24,5 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
     -m output/garden_working_original_low-res \
     --test_iterations $iterations_to_test \
-    -r 8
+    -r 8 \
+    --disable_viewer
