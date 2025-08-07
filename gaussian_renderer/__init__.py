@@ -122,7 +122,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
 
-<<<<<<< HEAD
     if is_training:
         out = {
             "render": rendered_image,
