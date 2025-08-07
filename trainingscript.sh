@@ -4,9 +4,8 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_op_reset
-#SBATCH --output=logs/garden_opacity_reset.out
+#SBATCH --output=logs/garden_opacity_reset_only.out
 
-error_threshold=5
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -23,7 +22,6 @@ conda activate gaussian_splatting_opacity_reset_only
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m output/garden_opacity_reset \
+    -m output/garden_opacity_reset_only \
     --test_iterations $iterations_to_test \
-    --densify_error_threshold $error_threshold \
     -r 8
