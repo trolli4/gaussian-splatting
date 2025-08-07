@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - tensorboard
   - numpy<2
   - gcc_linux-64=11
   - gxx_linux-64=11
@@ -20,4 +21,4 @@ dependencies:
       - dearpygui
       - opencv-python
       - joblib==1.1.0
-      - numpy<2
+      - numpy==1.23.5
