@@ -1,0 +1,247 @@
+diff --git a/eval_threshold.sh b/eval_threshold.sh
+deleted file mode 100644
+index 7a6ccf8..0000000
+--- a/eval_threshold.sh
++++ /dev/null
+@@ -1,50 +0,0 @@
+-#!/bin/bash
+-[ ! -d "./logs/" ] && mkdir "./logs/"
+-
+-iterations_to_test="1000"
+-for i in $(seq 2000 1000 30000); do
+-     iterations_to_test+=" $i"
+-done
+-
+-# Loop over threshold values from 20 to 110 in steps of 10
+-for threshold in {1..10..1}
+-do
+-    # Create a unique job script for this threshold
+-    JOB_SCRIPT="run_threshold_${threshold}.sh"
+-
+-    cat <<EOF > $JOB_SCRIPT
+-#!/bin/bash
+-#SBATCH --partition=mlgpu_short
+-#SBATCH --time=3:00:00
+-#SBATCH --gpus=1
+-#SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_train_${threshold}
+-#SBATCH --output=logs/garden_${threshold}.out
+-
+-# Source conda.sh to enable 'conda activate' in this script
+-source $(conda info --base)/etc/profile.d/conda.sh
+-
+-# Activate environment
+-conda activate gaussian_splatting
+-
+-# Run training with custom threshold
+-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
+-    -m output/garden_${threshold} \\
+-    # --quiet \\
+-    # --eval \\
+-    --densify_error_threshold ${threshold} \
+-    --test_iterations $iterations_to_test
+-
+-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
+-    -m output/garden_${threshold}
+-
+-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
+-    -m output/garden_${threshold}
+-EOF
+-
+-    # Submit the job
+-    sbatch $JOB_SCRIPT
+-
+-rm -v run_threshold_*.sh
+-done
+diff --git a/eval_threshold_x5.sh b/eval_threshold_x5.sh
+deleted file mode 100644
+index 0c0e962..0000000
+--- a/eval_threshold_x5.sh
++++ /dev/null
+@@ -1,49 +0,0 @@
+-#!/bin/bash
+-[ ! -d "./logs/" ] && mkdir "./logs/"
+-
+-# fill test_iterations with all iterations to compute PSNR at
+-iterations_to_test="1000"
+-for i in $(seq 2000 1000 30000); do
+-     iterations_to_test+=" $i"
+-done
+-
+-# Loop 5 times to remove statistical influence
+-for turn in {1..$1..1}
+-do
+-
+-# Loop over threshold values from 20 to 110 in steps of 10
+-for threshold in {1..20..1}
+-do
+-    # Create a unique job script for this threshold
+-    JOB_SCRIPT="run_threshold_${threshold}.sh"
+-
+-    cat <<EOF > $JOB_SCRIPT
+-#!/bin/bash
+-#SBATCH --partition=mlgpu_short
+-#SBATCH --time=3:00:00
+-#SBATCH --gpus=1
+-#SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_${turn}_${threshold}
+-#SBATCH --output=logs/turn_${turn}/garden_${threshold}.out
+-
+-# Source conda.sh to enable 'conda activate' in this script
+-source $(conda info --base)/etc/profile.d/conda.sh
+-
+-# Activate environment
+-conda activate gaussian_splatting
+-
+-# Run training with custom threshold
+-python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
+-    -m /lustre/scratch/data/s76mfroe_hpc-bpg_gaussian_splatting/gaussian-splatting/output/turn_${turn}/garden_${threshold} \\
+-    --densify_error_threshold ${threshold} \
+-    --test_iterations $iterations_to_test
+-
+-EOF
+-
+-    # Submit the job
+-    sbatch $JOB_SCRIPT
+-
+-rm -v run_threshold_*.sh
+-done
+-done
+diff --git a/gaussian_renderer/__init__.py b/gaussian_renderer/__init__.py
+index 4679190..ed361fa 100644
+--- a/gaussian_renderer/__init__.py
++++ b/gaussian_renderer/__init__.py
+@@ -122,19 +122,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+     # They will be excluded from value updates used in the splitting criteria.
+     rendered_image = rendered_image.clamp(0, 1)
+ 
+-    """
+-    # debug
+-    print("radii[:100]:", radii[:100])
+-    print("radii shape:", radii.shape)
+-    print("radii numel:", radii.numel())
+-    mask = (radii > 0)
+-    print("mask shape:", mask.shape, "numel:", mask.numel())
+-    print("mask.sum():", mask.sum().item())  # number of True values
+-    print("radii dtype:", radii.dtype, "device:", radii.device, "min:", radii.min().item(), "max:", radii.max().item())
+-    print("number of NaNs in radii:", torch.isnan(radii).sum().item())
+-    visibility_filter = mask.nonzero()
+-    print("visibility_filter shape:\n=====================", visibility_filter.shape)
+-    """
+ 
+     out = {
+         "render": rendered_image,
+diff --git a/get_loss_psnr.sh b/get_loss_psnr.sh
+deleted file mode 100644
+index 2adde68..0000000
+--- a/get_loss_psnr.sh
++++ /dev/null
+@@ -1,43 +0,0 @@
+-#!/bin/bash
+-[ ! -d "./logs/" ] && mkdir "./logs/"
+-
+-iterations_to_test="1000"
+-for i in $(seq 2000 1000 30000); do
+-     iterations_to_test+=" $i"
+-done
+-
+-# Loop over threshold values from 20 to 110 in steps of 10
+-for threshold in {1..10..1}
+-do
+-    # Create a unique job script for this threshold
+-    JOB_SCRIPT="run_threshold_${threshold}.sh"
+-
+-    cat <<EOF > $JOB_SCRIPT
+-#!/bin/bash
+-#SBATCH --partition=mlgpu_short
+-#SBATCH --time=3:00:00
+-#SBATCH --gpus=1
+-#SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_train_${threshold}
+-#SBATCH --output=logs/garden_${threshold}.out
+-
+-# Source conda.sh to enable 'conda activate' in this script
+-source $(conda info --base)/etc/profile.d/conda.sh
+-
+-# Activate environment
+-conda activate gaussian_splatting
+-
+-# Run training with custom threshold
+-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \\
+-    -m output/garden_${threshold} \\
+-    --densify_error_threshold ${threshold} \
+-    --test_iterations $iterations_to_test
+-
+-EOF
+-
+-    # Submit the job
+-    sbatch $JOB_SCRIPT
+-
+-rm -v run_threshold_*.sh
+-done
+diff --git a/helpful-commands.txt b/helpful-commands.txt
+deleted file mode 100644
+index 2b6a94a..0000000
+--- a/helpful-commands.txt
++++ /dev/null
+@@ -1,4 +0,0 @@
+-nm -D /home/s76mfroe_hpc/.conda/envs/gaussian_splatting/lib/python3.9/site-packages/diff_gaussian_rasterization/_C.cpython-39-x86_64-linux-gnu.so | grep RasterizeGaussiansCUDA
+-
+-
+-grep PSNR slurm-22378002.out 
+diff --git a/scene/gaussian_model.py b/scene/gaussian_model.py
+index 426508b..9b390dd 100644
+--- a/scene/gaussian_model.py
++++ b/scene/gaussian_model.py
+@@ -458,7 +458,8 @@ class GaussianModel:
+         new_xyz = self._xyz[selected_pts_mask]
+         new_features_dc = self._features_dc[selected_pts_mask]
+         new_features_rest = self._features_rest[selected_pts_mask]
+-        new_opacities = self._opacity[selected_pts_mask]
++        self._opacity[selected_pts_mask] = 1 - torch.sqrt(1 - self._opacity[selected_pts_mask])         # equation from local revising densification paper: 
++        new_opacities = self._opacity[selected_pts_mask]                                                # alpha_new = 1 - sqrt(1 - alpha)
+         new_scaling = self._scaling[selected_pts_mask]
+         new_rotation = self._rotation[selected_pts_mask]
+ 
+diff --git a/trainingscript.sh b/trainingscript.sh
+index 43aa549..de6f7e7 100644
+--- a/trainingscript.sh
++++ b/trainingscript.sh
+@@ -1,23 +1,21 @@
+ #!/bin/bash
+ #SBATCH --partition=mlgpu_short
+ #SBATCH --time=3:00:00
+-#SBATCH --gpus=1
++#SBATCH --gpus=2
+ #SBATCH --account=ag_ifi_laehner
+ #SBATCH --job-name=gs_train
+ 
+-# fill test_iterations with all iterations to compute PSNR at
+-iterations_to_test="1000"
+-for i in $(seq 2000 1000 30000); do
+-     iterations_to_test+=" $i"
+-done
+-
+-# Source conda.sh to enable 'conda activate' in this script
+-source $(conda info --base)/etc/profile.d/conda.sh
+-
+ # Activate environment
+-conda activate gaussian_splatting
++source activate gaussian_splatting
++
++# debug
++which python
++python -c "import torch; print(torch.cuda.is_available())"
++python -c "import torch; print(torch.__version__, torch.version.cuda)"
++module load CUDA/11.8.0
++export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
++nvcc --version
+ 
+ # Run training
+ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
+-    --test_iterations $iterations_to_test
++    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/opacity-correction

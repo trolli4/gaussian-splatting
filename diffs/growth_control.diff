@@ -1,0 +1,73 @@
+diff --git a/arguments/__init__.py b/arguments/__init__.py
+index b7c166a..734a269 100644
+--- a/arguments/__init__.py
++++ b/arguments/__init__.py
+@@ -88,6 +88,7 @@ class OptimizationParams(ParamGroup):
+         self.exposure_lr_delay_mult = 0.0
+         self.percent_dense = 0.01
+         self.lambda_dssim = 0.2
++        self.max_number_gaussians = 6000000
+         self.densification_interval = 100
+         self.opacity_reset_interval = 3000
+         self.densify_from_iter = 500
+diff --git a/scene/gaussian_model.py b/scene/gaussian_model.py
+index 36074aa..ea8bf37 100644
+--- a/scene/gaussian_model.py
++++ b/scene/gaussian_model.py
+@@ -458,7 +458,8 @@ class GaussianModel:
+         new_xyz = self._xyz[selected_pts_mask]
+         new_features_dc = self._features_dc[selected_pts_mask]
+         new_features_rest = self._features_rest[selected_pts_mask]
+-        new_opacities = 1 - torch.sqrt(1 - self._opacity[selected_pts_mask])    	  # equation from local revising densification paper: alpha_new = 1 - sqrt(1 - alpha)
++        self._opacity[selected_pts_mask] = 1 - torch.sqrt(1 - self._opacity[selected_pts_mask])         # equation from local revising densification paper: 
++        new_opacities = self._opacity[selected_pts_mask]                                                # alpha_new = 1 - sqrt(1 - alpha)
+         new_scaling = self._scaling[selected_pts_mask]
+         new_rotation = self._rotation[selected_pts_mask]
+ 
+@@ -466,13 +467,18 @@ class GaussianModel:
+ 
+         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_tmp_radii)
+ 
+-    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii):
++    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians):
+         errors = self.E_k
+         errors[errors.isnan()] = 0.0
++        num_gaussians = self.E_k.shape[0]                                                                   # current num of gaussians
++        max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
++        masked_errors = torch.zeros_like(errors)
++        _, max_k_indices = torch.topk(errors, max_new_gaussians)
++        masked_errors[max_k_indices] = errors[max_k_indices]
+ 
+         self.tmp_radii = radii
+-        self.densify_and_clone(errors, error_threshold, extent)
+-        self.densify_and_split(errors, error_threshold, extent)
++        self.densify_and_clone(masked_errors, error_threshold, extent)
++        self.densify_and_split(masked_errors, error_threshold, extent)
+ 
+         prune_mask = (self.get_opacity < min_opacity).squeeze()
+         if max_screen_size:
+diff --git a/train.py b/train.py
+index d65b4bc..a9a8efd 100644
+--- a/train.py
++++ b/train.py
+@@ -185,7 +185,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                     # TODO: figure out which value for error_threshhold is best
+                     # what does the Boolean Check here do?
+                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+-                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
++                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians)
+ 
+                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
+                     gaussians.reset_opacity()
+diff --git a/trainingscript.sh b/trainingscript.sh
+index 162829c..9d193e6 100644
+--- a/trainingscript.sh
++++ b/trainingscript.sh
+@@ -21,5 +21,5 @@ conda activate gaussian_splatting
+ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
+     -m output/opacity-correction \
+-    --test_iterations $iterations_to_test
+-
++    --test_iterations $iterations_to_test \
++    # --densify_error_threshold 1

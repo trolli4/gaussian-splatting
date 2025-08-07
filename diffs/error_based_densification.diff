@@ -1,0 +1,556 @@
+diff --git a/.gitmodules b/.gitmodules
+index cafb9ac..e20b9e1 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -3,8 +3,8 @@
+ 	url = https://gitlab.inria.fr/bkerbl/simple-knn.git
+ [submodule "submodules/diff-gaussian-rasterization"]
+ 	path = submodules/diff-gaussian-rasterization
+-	url = https://github.com/graphdeco-inria/diff-gaussian-rasterization.git
+-	branch = dr_aa
++	url = https://github.com/trolli4/diff-gaussian-rasterization.git
++	branch = what-have-i-done
+ [submodule "SIBR_viewers"]
+ 	path = SIBR_viewers
+ 	url = https://gitlab.inria.fr/sibr/sibr_core.git
+diff --git a/Overview.md b/Overview.md
+index 0055cb1..3f166db 100644
+--- a/Overview.md
++++ b/Overview.md
+@@ -30,14 +30,15 @@
+ - subclass of ```torch.autograd.Function```
+ - custom autograd function
+ - [explanation of what a (custom) autograd function is](https://brsoff.github.io/tutorials/beginner/examples_autograd/two_layer_net_custom_function.html)
++- calling ``_RasterizeGaussians.apply(args)`` internally passes ``args`` to ``_RasterizeGaussians.forward(..)`` and then does one forward - backward pass
+ 
+ #### _RasterizeGaussians.forward()
+ - computes output for given input ?
+ - rasterizes gaussians
+-- formats given arguments in a way that C++ can work with them  
++- formats given arguments in a way that C++ can work with them
+ ```_RasterizeGaussians.forward()``` calls ```_C.rasterizeGaussians(*args)``` >>> ```_C.rasterizeGaussians(..)``` is CUDA rasterizer which is used inside the function
+ 
+-#### _RasterizerGaussian.backward()
++#### _RasterizeGaussian.backward()
+ - computes input for given output ?
+ - calculates gradients of gaussians/tensors, returns tuple 'grad' which has same variables as 'rasterize_gaussians()' takes
+ - formats arguments for C++ lib
+@@ -54,7 +55,8 @@
+ 
+ ### cuda_rasterizer/forward.cu
+ - [``forward.cu`` vs ``backward.cu``](https://sandokim.github.io/cuda/cuda-rasterizer-foward-cu-backward-cu/)
+-- tile-based rendering?
++- tile-based rendering
++- rasterization around line 360
+ 
+ #### computeColorFromSH()
+ 
+@@ -137,4 +139,5 @@
+ #### add_densification_stats()
+ 
+ ## train.py
+-- calculates camera view (around line 111, ff.)
+\ No newline at end of file
++- calculates camera view (around line 111, ff.)
++- utilize ``loss.backward()`` (line 142)
+\ No newline at end of file
+diff --git a/README.md b/README.md
+index eb2cf6c..fd80a28 100644
+--- a/README.md
++++ b/README.md
+@@ -195,6 +195,8 @@ python train.py -s <path to COLMAP or NeRF Synthetic dataset>
+   Iteration where densification stops, ```15_000``` by default.
+   #### --densify_grad_threshold
+   Limit that decides if points should be densified based on 2D position gradient, ```0.0002``` by default.
++  #### --densify_error_threshold
++  Limit that decides if points should be densified based on accumulated per gaussian error, ```XX``` by default.
+   #### --densification_interval
+   How frequently to densify, ```100``` (every 100 iterations) by default.
+   #### --opacity_reset_interval
+diff --git a/arguments/__init__.py b/arguments/__init__.py
+index 0b2f448..b7c166a 100644
+--- a/arguments/__init__.py
++++ b/arguments/__init__.py
+@@ -93,6 +93,7 @@ class OptimizationParams(ParamGroup):
+         self.densify_from_iter = 500
+         self.densify_until_iter = 15_000
+         self.densify_grad_threshold = 0.0002
++        self.densify_error_threshold = 20
+         self.depth_l1_weight_init = 1.0
+         self.depth_l1_weight_final = 0.01
+         self.random_background = False
+diff --git a/environment.yml b/environment.yml
+index 8c03d1d..ff08787 100644
+--- a/environment.yml
++++ b/environment.yml
+@@ -1,4 +1,4 @@
+-name: gaussian_splatting_old
++name: gaussian_splatting
+ channels:
+   - conda-forge
+   - defaults
+diff --git a/gaussian_renderer/__init__.py b/gaussian_renderer/__init__.py
+index e12f4b6..ed361fa 100644
+--- a/gaussian_renderer/__init__.py
++++ b/gaussian_renderer/__init__.py
+@@ -49,11 +49,13 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+         antialiasing=pipe.antialiasing
+     )
+ 
++    # init Rasterizer
+     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
+ 
+     means3D = pc.get_xyz
+-    means2D = screenspace_points
++    means2D = screenspace_points                    # Zero-Tensor initially
+     opacity = pc.get_opacity
++    error_helper = pc.get_e_k
+ 
+     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
+     # scaling / rotation by the rasterizer.
+@@ -88,7 +90,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+ 
+     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
+     if separate_sh:
+-        rendered_image, radii, depth_image = rasterizer(
++        rendered_image, radii, depth_image, error_render = rasterizer(
+             means3D = means3D,
+             means2D = means2D,
+             dc = dc,
+@@ -97,9 +99,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+             opacities = opacity,
+             scales = scales,
+             rotations = rotations,
+-            cov3D_precomp = cov3D_precomp)
++            cov3D_precomp = cov3D_precomp,
++            error_helper = error_helper,)
+     else:
+-        rendered_image, radii, depth_image = rasterizer(
++        rendered_image, radii, depth_image, error_render = rasterizer(
+             means3D = means3D,
+             means2D = means2D,
+             shs = shs,
+@@ -107,7 +110,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+             opacities = opacity,
+             scales = scales,
+             rotations = rotations,
+-            cov3D_precomp = cov3D_precomp)
++            cov3D_precomp = cov3D_precomp,
++            error_helper = error_helper,)
+         
+     # Apply exposure to rendered image (training only)
+     if use_trained_exp:
+@@ -117,12 +121,15 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
+     # They will be excluded from value updates used in the splitting criteria.
+     rendered_image = rendered_image.clamp(0, 1)
++
++
+     out = {
+         "render": rendered_image,
+         "viewspace_points": screenspace_points,
+         "visibility_filter" : (radii > 0).nonzero(),
+         "radii": radii,
+-        "depth" : depth_image
++        "depth" : depth_image,
++        "error_render" : error_render
+         }
+     
+     return out
+diff --git a/model_sizes.sh b/model_sizes.sh
+deleted file mode 100644
+index d413aa9..0000000
+--- a/model_sizes.sh
++++ /dev/null
+@@ -1,44 +0,0 @@
+-#!/bin/bash
+-
+-# Base path where scene folders are located
+-BASE_DATASET_PATH="/home/s76mfroe_hpc/nerf-360-scenes"
+-
+-# Log directory
+-LOG_DIR="./logs"
+-mkdir -p "$LOG_DIR"
+-
+-# Loop over all folders in dataset path
+-for folder in "$BASE_DATASET_PATH"/*; do
+-    if [ -d "$folder" ]; then
+-        folder_name=$(basename "$folder")
+-        log_file="${LOG_DIR}/original/eval/${folder_name}.out"
+-        model_path="output/original/eval/${folder_name}"
+-
+-        sbatch <<EOF
+-#!/bin/bash
+-#SBATCH --partition=mlgpu_short
+-#SBATCH --time=3:00:00
+-#SBATCH --gpus=1
+-#SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_train_${folder_name}
+-#SBATCH --output=${log_file}
+-
+-source \$(conda info --base)/etc/profile.d/conda.sh
+-conda activate gaussian_splatting_old
+-
+-python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+-    -s "${BASE_DATASET_PATH}/${folder_name}" \\
+-    -m "${model_path}" \\
+-    --disable_viewer \\
+-    #-r 8 \\
+-    --eval
+-
+-python /home/s76mfroe_hpc/gaussian-splatting/render.py \\
+-    -m "${model_path}"
+-
+-python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \\
+-    -m "${model_path}" 
+-EOF
+-
+-    fi
+-done
+diff --git a/scene/gaussian_model.py b/scene/gaussian_model.py
+index b249848..426508b 100644
+--- a/scene/gaussian_model.py
++++ b/scene/gaussian_model.py
+@@ -64,6 +64,8 @@ class GaussianModel:
+         self.percent_dense = 0
+         self.spatial_lr_scale = 0
+         self.setup_functions()
++        self.e_k = torch.empty(0)
++        self.E_k = torch.empty(0)
+ 
+     def capture(self):
+         return (
+@@ -79,6 +81,8 @@ class GaussianModel:
+             self.denom,
+             self.optimizer.state_dict(),
+             self.spatial_lr_scale,
++            self.e_k,
++            self.E_k,
+         )
+     
+     def restore(self, model_args, training_args):
+@@ -93,7 +97,9 @@ class GaussianModel:
+         xyz_gradient_accum, 
+         denom,
+         opt_dict, 
+-        self.spatial_lr_scale) = model_args
++        self.spatial_lr_scale,
++        self.e_k,
++        self.E_k) = model_args
+         self.training_setup(training_args)
+         self.xyz_gradient_accum = xyz_gradient_accum
+         self.denom = denom
+@@ -111,6 +117,10 @@ class GaussianModel:
+     def get_xyz(self):
+         return self._xyz
+     
++    @property
++    def get_e_k(self):
++        return self.e_k
++    
+     @property
+     def get_features(self):
+         features_dc = self._features_dc
+@@ -174,6 +184,8 @@ class GaussianModel:
+         self.pretrained_exposures = None
+         exposure = torch.eye(3, 4, device="cuda")[None].repeat(len(cam_infos), 1, 1)
+         self._exposure = nn.Parameter(exposure.requires_grad_(True))
++        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
++        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda")                                                         # maybe add ', device="cuda"'?
+ 
+     def training_setup(self, training_args):
+         self.percent_dense = training_args.percent_dense
+@@ -247,7 +259,6 @@ class GaussianModel:
+         scale = self._scaling.detach().cpu().numpy()
+         rotation = self._rotation.detach().cpu().numpy()
+ 
+-        print(f"Number of points at end: {xyz.shape[0]}")
+         dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
+ 
+         elements = np.empty(xyz.shape[0], dtype=dtype_full)
+@@ -348,7 +359,7 @@ class GaussianModel:
+         return optimizable_tensors
+ 
+     def prune_points(self, mask):
+-        valid_points_mask = ~mask
++        valid_points_mask = ~mask.cpu()
+         optimizable_tensors = self._prune_optimizer(valid_points_mask)
+ 
+         self._xyz = optimizable_tensors["xyz"]
+@@ -363,6 +374,8 @@ class GaussianModel:
+         self.denom = self.denom[valid_points_mask]
+         self.max_radii2D = self.max_radii2D[valid_points_mask]
+         self.tmp_radii = self.tmp_radii[valid_points_mask]
++        self.e_k = nn.Parameter(self.e_k.data[valid_points_mask].clone(), requires_grad=True)
++        self.E_k = self.E_k[valid_points_mask]
+ 
+     def cat_tensors_to_optimizer(self, tensors_dict):
+         optimizable_tensors = {}
+@@ -406,13 +419,16 @@ class GaussianModel:
+         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
++        # update to new gaussians
++        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
++        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda") 
+ 
+-    def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
++    def densify_and_split(self, errors, error_threshold, scene_extent, N=2):
+         n_init_points = self.get_xyz.shape[0]
+-        # Extract points that satisfy the gradient condition
+-        padded_grad = torch.zeros((n_init_points), device="cuda")
+-        padded_grad[:grads.shape[0]] = grads.squeeze()
+-        selected_pts_mask = torch.where(padded_grad >= grad_threshold, True, False)
++        # Extract points that satisfy the error condition
++        padded_errors = torch.zeros((n_init_points), device="cuda")                     # what this do?
++        padded_errors[:errors.shape[0]] = errors.squeeze()                              # does this work?
++        selected_pts_mask = torch.where(padded_errors >= error_threshold, True, False)
+         selected_pts_mask = torch.logical_and(selected_pts_mask,
+                                               torch.max(self.get_scaling, dim=1).values > self.percent_dense*scene_extent)
+ 
+@@ -433,9 +449,9 @@ class GaussianModel:
+         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
+         self.prune_points(prune_filter)
+ 
+-    def densify_and_clone(self, grads, grad_threshold, scene_extent):
++    def densify_and_clone(self, errors, error_threshold, scene_extent):
+         # Extract points that satisfy the gradient condition
+-        selected_pts_mask = torch.where(torch.norm(grads, dim=-1) >= grad_threshold, True, False)
++        selected_pts_mask = torch.where(errors >= error_threshold, True, False)
+         selected_pts_mask = torch.logical_and(selected_pts_mask,
+                                               torch.max(self.get_scaling, dim=1).values <= self.percent_dense*scene_extent)
+         
+@@ -450,13 +466,13 @@ class GaussianModel:
+ 
+         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_tmp_radii)
+ 
+-    def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size, radii):
+-        grads = self.xyz_gradient_accum / self.denom
+-        grads[grads.isnan()] = 0.0
++    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii):
++        errors = self.E_k
++        errors[errors.isnan()] = 0.0
+ 
+         self.tmp_radii = radii
+-        self.densify_and_clone(grads, max_grad, extent)
+-        self.densify_and_split(grads, max_grad, extent)
++        self.densify_and_clone(errors, error_threshold, extent)
++        self.densify_and_split(errors, error_threshold, extent)
+ 
+         prune_mask = (self.get_opacity < min_opacity).squeeze()
+         if max_screen_size:
+diff --git a/setupscript.sh b/setupscript.sh
+index 8af5808..f07f32b 100644
+--- a/setupscript.sh
++++ b/setupscript.sh
+@@ -3,7 +3,7 @@
+ #SBATCH --time=1:00:00
+ #SBATCH --gpus=1
+ #SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_train
++#SBATCH --job-name=gs_setup
+ 
+ module purge
+ module load Miniforge3
+@@ -14,13 +14,13 @@ module load CUDA/11.8.0
+ export CUDA_HOME=$CUDA_HOME
+ 
+ # Clean existing env
+-conda env remove --name gaussian_splatting_old -y
++conda env remove --name gaussian_splatting -y
+ 
+ # Create environment
+ conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
+ 
+ # Activate environment
+-source activate gaussian_splatting_old
++source activate gaussian_splatting
+ 
+ # Install C++/CUDA submodules (after torch is installed)
+ pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
+diff --git a/submodules/diff-gaussian-rasterization b/submodules/diff-gaussian-rasterization
+index 9c5c202..f179d43 160000
+--- a/submodules/diff-gaussian-rasterization
++++ b/submodules/diff-gaussian-rasterization
+@@ -1 +1 @@
+-Subproject commit 9c5c2028f6fbee2be239bc4c9421ff894fe4fbe0
++Subproject commit f179d43516050c55de3af26a31b5264193508a07
+diff --git a/submodules/fused-ssim b/submodules/fused-ssim
+index e81b5e0..8bdb59f 160000
+--- a/submodules/fused-ssim
++++ b/submodules/fused-ssim
+@@ -1 +1 @@
+-Subproject commit e81b5e05cbf5d4b4ca203b1c881e0e3f50acc354
++Subproject commit 8bdb59feb7b9a41b1fab625907cb21f5417deaac
+diff --git a/train.py b/train.py
+index 8206903..d65b4bc 100644
+--- a/train.py
++++ b/train.py
+@@ -11,6 +11,7 @@
+ 
+ import os
+ import torch
++import numpy as np                                                  # used for logging tensor values
+ from random import randint
+ from utils.loss_utils import l1_loss, ssim
+ from gaussian_renderer import render, network_gui
+@@ -71,7 +72,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
+     first_iter += 1
+     for iteration in range(first_iter, opt.iterations + 1):
+-        if network_gui.conn == None:
++        # commented out during testing
++        """ if network_gui.conn == None:
+             network_gui.try_connect()
+         while network_gui.conn != None:
+             try:
+@@ -84,7 +86,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                 if do_training and ((iteration < int(opt.iterations)) or not keep_alive):
+                     break
+             except Exception as e:
+-                network_gui.conn = None
++                network_gui.conn = None """
+ 
+         iter_start.record()
+ 
+@@ -109,8 +111,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+         bg = torch.rand((3), device="cuda") if opt.random_background else background
+ 
+         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
+-        image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
++        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
+ 
++        # Alpha Masking of image
+         if viewpoint_cam.alpha_mask is not None:
+             alpha_mask = viewpoint_cam.alpha_mask.cuda()
+             image *= alpha_mask
+@@ -128,18 +131,30 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+         # Depth regularization
+         Ll1depth_pure = 0.0
+         if depth_l1_weight(iteration) > 0 and viewpoint_cam.depth_reliable:
+-            invDepth = render_pkg["depth"]
+-            mono_invdepth = viewpoint_cam.invdepthmap.cuda()
++            invDepth = render_pkg["depth"]                                          # model's predicted depth map
++            mono_invdepth = viewpoint_cam.invdepthmap.cuda()                        # reference inverse depth map
+             depth_mask = viewpoint_cam.depth_mask.cuda()
+ 
+             Ll1depth_pure = torch.abs((invDepth  - mono_invdepth) * depth_mask).mean()
+             Ll1depth = depth_l1_weight(iteration) * Ll1depth_pure 
+             loss += Ll1depth
+-            Ll1depth = Ll1depth.item()
++            Ll1depth = Ll1depth.item()                                              # Converts to float (for logging/debugging)
+         else:
+             Ll1depth = 0
+ 
+-        loss.backward()
++        loss.backward(retain_graph=True)
++
++        # error-based densification
++        per_pixel_error = torch.abs(image - gt_image)
++        phi_ERR = error_render                                                      # error_render returned by render(..)
++        L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
++        L_aux.backward()
++        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
++        with torch.no_grad():
++            torch.maximum(gaussians.E_k, dL_aux_derror_helper.detach().squeeze(-1), out=gaussians.E_k)
++        """ log_variable("error_gradient", dL_aux_derror_helper)
++        log_variable("E_k", gaussians.E_k) """
++        gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
+ 
+         iter_end.record()
+ 
+@@ -149,7 +164,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+             ema_Ll1depth_for_log = 0.4 * Ll1depth + 0.6 * ema_Ll1depth_for_log
+ 
+             if iteration % 10 == 0:
+-                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}"})
++                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}\n"})
+                 progress_bar.update(10)
+             if iteration == opt.iterations:
+                 progress_bar.close()
+@@ -167,9 +182,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
+ 
+                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
++                    # TODO: figure out which value for error_threshhold is best
++                    # what does the Boolean Check here do?
+                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+-                    gaussians.densify_and_prune(opt.densify_grad_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
+-                
++                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
++
+                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
+                     gaussians.reset_opacity()
+ 
+@@ -189,6 +206,23 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
+                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+ 
++def log_variable(filename: str, variable: any):
++
++    temp_var = variable
++    filename = "/home/s76mfroe_hpc/gaussian-splatting/" + filename + ".txt"
++
++    if temp_var.requires_grad:
++        temp_var = temp_var.detach()
++    if temp_var.is_cuda:
++        temp_var = temp_var.cpu()
++
++    temp_var = temp_var.numpy()
++    with open(filename, "a") as f:
++        f.write("\n===================")
++        np.savetxt(f, temp_var, fmt="%.6f", delimiter=",")
++        f.write("===================\n")
++        
++
+ def prepare_output_and_logger(args):    
+     if not args.model_path:
+         if os.getenv('OAR_JOB_ID'):
+@@ -275,9 +309,9 @@ if __name__ == "__main__":
+     # Initialize system state (RNG)
+     safe_state(args.quiet)
+ 
+-    # Start GUI server, configure and run training
+-    if not args.disable_viewer:
+-        network_gui.init(args.ip, args.port)
++    # Start GUI server, configure and run training - commented out during testing
++    """ if not args.disable_viewer:
++        network_gui.init(args.ip, args.port) """
+     torch.autograd.set_detect_anomaly(args.detect_anomaly)
+     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
+ 
+diff --git a/trainingscript.sh b/trainingscript.sh
+index 749693a..701cba5 100644
+--- a/trainingscript.sh
++++ b/trainingscript.sh
+@@ -1,16 +1,21 @@
+ #!/bin/bash
+-#SBATCH --partition=mlgpu_devel
+-#SBATCH --time=1:00:00
+-#SBATCH --gpus=1
++#SBATCH --partition=mlgpu_short
++#SBATCH --time=3:00:00
++#SBATCH --gpus=2
+ #SBATCH --account=ag_ifi_laehner
+ #SBATCH --job-name=gs_train
+ 
+-# Source conda.sh to enable 'conda activate' in this script
+-source $(conda info --base)/etc/profile.d/conda.sh
+-
+ # Activate environment
+-conda activate gaussian_splatting_old
++source activate gaussian_splatting
++
++# debug
++which python
++python -c "import torch; print(torch.cuda.is_available())"
++python -c "import torch; print(torch.__version__, torch.version.cuda)"
++module load CUDA/11.8.0
++export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
++nvcc --version
+ 
+ # Run training
+-python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/original-3dgs
++CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
++    -s /home/s76mfroe_hpc/nerf-360-scenes/garden -m output/error-based-densification
