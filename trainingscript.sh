@@ -4,10 +4,10 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_op_reset
-#SBATCH --output=logs/garden_opacity_reset.out
+#SBATCH --output=logs/garden_opacity_reset_tensorboard.out
 
 error_threshold=5
-MODEL_PATH="output/garden_original_opacity_reset"
+MODEL_PATH="output/garden_opacity_reset_tensorboard"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
