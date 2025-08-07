@@ -247,7 +247,7 @@ index b249848..426508b 100644
 +    @property
 +    def get_e_k(self):
 +        return self.e_k
-+    
++
      @property
      def get_features(self):
          features_dc = self._features_dc
@@ -292,7 +292,7 @@ index b249848..426508b 100644
          self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 +        # update to new gaussians
 +        self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
-+        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda") 
++        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda")
  
 -    def densify_and_split(self, grads, grad_threshold, scene_extent, N=2):
 +    def densify_and_split(self, errors, error_threshold, scene_extent, N=2):
@@ -501,7 +501,7 @@ index 8206903..d65b4bc 100644
 +        f.write("\n===================")
 +        np.savetxt(f, temp_var, fmt="%.6f", delimiter=",")
 +        f.write("===================\n")
-+        
++
 +
  def prepare_output_and_logger(args):    
      if not args.model_path:
