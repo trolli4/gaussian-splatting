@@ -30,7 +30,7 @@ python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
     -s "${BASE_DATASET_PATH}/${folder_name}" \\
     -m "${model_path}" \\
     --disable_viewer \\
-    #-r 8 \\
+    -r 8 \\
     --eval
 
 python /home/s76mfroe_hpc/gaussian-splatting/render.py \\
