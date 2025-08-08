@@ -6,7 +6,7 @@
 #SBATCH --job-name=gs_op_correction
 #SBATCH --output=logs/counter_opacity_correction_only_eval.out
 
-MODEL_PATH="counter_opacity_correction_only_eval"
+MODEL_PATH="output/counter_opacity_correction_only_eval"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
