@@ -113,7 +113,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
-        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
+        image, viewspace_point_tensor, visibility_filter, radii, error_render, residual_opacity = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"], render_pkg["residual_opacity"]
 
         # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
@@ -143,6 +143,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             Ll1depth = Ll1depth.item()                                              # Converts to float (for logging/debugging)
         else:
             Ll1depth = 0
+
+        # debug shape of residual opacity
+        print("residual_opacity shape:", residual_opacity.shape)
+        average_residual_opacity = torch.mean(residual_opacity)
+        weighted_opacity_loss = 0.1 * average_residual_opacity
+
+        loss += weighted_opacity_loss
 
         loss.backward(retain_graph=True)
 
@@ -187,7 +194,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     # TODO: figure out which value for error_threshhold is best
                     # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii)
+                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()
