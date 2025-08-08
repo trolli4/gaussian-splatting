@@ -3,10 +3,10 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_error
-#SBATCH --output=logs/counter_error_based_densification_only_eval.out
+#SBATCH --job-name=gs_growth_control
+#SBATCH --output=logs/counter_growth_control_only_eval.out
 
-MODEL_PATH="output/counter_error_based_densification_only_eval"
+MODEL_PATH="output/counter_growth_control_only_eval"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -18,16 +18,19 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting
+conda activate gaussian_splatting_old
 
-echo "training & rendering.."
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render_metrics.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m "$MODEL_PATH" \
-    --eval \
+# Run training
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/counter \
+    -m "${MODEL_PATH}" \
     --test_iterations $iterations_to_test \
-    -r 8
+    -r 8 \
+    --disable_viewer \
+    --eval
 
-echo "evaluating.."
+CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
+    -m "${MODEL_PATH}"
+
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m "$MODEL_PATH" 
+    -m "${MODEL_PATH}"
