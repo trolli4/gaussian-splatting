@@ -264,7 +264,7 @@ class GaussianModel:
     def correct_opacity(self, mask):
         alpha = self.opacity_activation(self._opacity[mask])
         alpha_new = 1.0 - torch.sqrt(1.0 - alpha)                                           # equation from local revising densification paper: alpha_new = 1 - sqrt(1 - alpha_old)
-        opacity_new = self.inverse_opacity_activation(alpha_new / (1.0 - alpha_new))
+        opacity_new = self.inverse_opacity_activation(alpha_new)
         self._opacity[mask] = opacity_new
 
     def load_ply(self, path, use_train_test_exp = False):
