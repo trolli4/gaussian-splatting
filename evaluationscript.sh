@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=mlgpu_short
-#SBATCH --time=3:00:00
-#SBATCH --gpus=1
+#SBATCH --time=8:00:00
+#SBATCH --gpus=2
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_error
 #SBATCH --output=logs/counter_error_based_densification_only_eval.out
