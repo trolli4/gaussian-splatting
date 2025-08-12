@@ -27,7 +27,7 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render
     --eval \
     --test_iterations $iterations_to_test \
     -r 8 \
-    --densify_error_threshold 1 \
+    --densify_error_threshold 0.1 \
     --disable_viewer
 
 echo "evaluating.."
