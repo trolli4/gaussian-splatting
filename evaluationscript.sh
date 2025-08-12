@@ -3,10 +3,10 @@
 #SBATCH --time=8:00:00
 #SBATCH --gpus=2
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_error
-#SBATCH --output=logs/counter_error_based_densification_only_eval.out
+#SBATCH --job-name=gs_err_growth
+#SBATCH --output=logs/counter_error_based_densification_growth_control_eval.out
 
-MODEL_PATH="output/counter_error_based_densification_only_eval"
+MODEL_PATH="output/counter_error_based_densification_growth_control_eval"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
