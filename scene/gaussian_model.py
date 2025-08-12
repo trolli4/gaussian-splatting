@@ -258,7 +258,7 @@ class GaussianModel:
 
     def reset_opacity(self, opacity_pruning_threshold):
         opacity_reduction = 0.001
-        opacity_minimum = opacity_pruning_threshold
+        opacity_minimum = 0.001
         opacities_new = self.inverse_opacity_activation(torch.max(self.get_opacity - opacity_reduction, torch.ones_like(self.get_opacity)*opacity_minimum))
         optimizable_tensors = self.replace_tensor_to_optimizer(opacities_new, "opacity")
         self._opacity = optimizable_tensors["opacity"]
