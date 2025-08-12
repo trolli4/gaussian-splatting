@@ -471,13 +471,13 @@ class GaussianModel:
         errors[errors.isnan()] = 0.0
         num_gaussians = self._xyz.shape[0]                                                                  # current num of gaussians
         max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
-        masked_grads = torch.zeros_like(errors)
+        masked_errors = torch.zeros_like(errors)
         _, max_k_indices = torch.topk(errors.squeeze(), max_new_gaussians)
-        masked_grads[max_k_indices] = errors[max_k_indices]
+        masked_errors[max_k_indices] = errors[max_k_indices]
 
         self.tmp_radii = radii
-        self.densify_and_clone(errors, error_threshold, extent)
-        self.densify_and_split(errors, error_threshold, extent)
+        self.densify_and_clone(masked_errors, error_threshold, extent)
+        self.densify_and_split(masked_errors, error_threshold, extent)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
