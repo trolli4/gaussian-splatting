@@ -7,9 +7,11 @@ BASE_DATASET_PATH="/home/s76mfroe_hpc/nerf-360-scenes"
 LOG_DIR="./logs"
 mkdir -p "$LOG_DIR"
 
+scenes="bicycle flowers garden"
+
 # Loop over all folders in dataset path
-for folder in "$BASE_DATASET_PATH"/*; do
-    if [ -d "$folder" ]; then
+for folder in $scenes; do
+    if [ -d "$BASE_DATASET_PATH"/"$folder" ]; then
         folder_name=$(basename "$folder")
         log_file="${LOG_DIR}/original/eval/${folder_name}.out"
         model_path="output/original/eval/${folder_name}"
@@ -17,8 +19,8 @@ for folder in "$BASE_DATASET_PATH"/*; do
         sbatch <<EOF
 #!/bin/bash
 #SBATCH --partition=mlgpu_short
-#SBATCH --time=3:00:00
-#SBATCH --gpus=1
+#SBATCH --time=5:00:00
+#SBATCH --gpus=2
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train_${folder_name}
 #SBATCH --output=${log_file}
@@ -26,17 +28,19 @@ for folder in "$BASE_DATASET_PATH"/*; do
 source \$(conda info --base)/etc/profile.d/conda.sh
 conda activate gaussian_splatting_old
 
-python /home/s76mfroe_hpc/gaussian-splatting/train.py \\
+: <<'comment'
+python train.py \\
     -s "${BASE_DATASET_PATH}/${folder_name}" \\
     -m "${model_path}" \\
     --disable_viewer \\
-    -r 8 \\
+    -r -1 \\
     --eval
+comment
 
-python /home/s76mfroe_hpc/gaussian-splatting/render.py \\
+python render.py \\
     -m "${model_path}"
 
-python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \\
+python metrics.py \\
     -m "${model_path}" 
 EOF
 
