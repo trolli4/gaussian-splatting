@@ -4,9 +4,9 @@
 #SBATCH --gpus=2
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_err_growth
-#SBATCH --output=logs/counter_error_based_densification_growth_control_eval_01.out
+#SBATCH --output=logs/counter_error_based_densification_growth_control_eval_1.out
 
-MODEL_PATH="output/counter_error_based_densification_growth_control_eval_01"
+MODEL_PATH="output/counter_error_based_densification_growth_control_eval_1"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -26,8 +26,8 @@ CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
     -m "$MODEL_PATH" \
     --eval \
     --test_iterations $iterations_to_test \
-    --densify_error_threshold 0.1 \
-    -r 1 \
+    --densify_error_threshold 1 \
+    -r -1 \
     --disable_viewer
 
 echo "evaluating.."
