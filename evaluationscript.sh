@@ -4,9 +4,9 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_err_growth
-#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1.out
+#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_mixed_original.out
 
-MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1"
+MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_mixed_original"
 
 
 # fill test_iterations with all iterations to compute PSNR at
@@ -27,7 +27,7 @@ CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
     -m "$MODEL_PATH" \
     --eval \
     --test_iterations $iterations_to_test \
-    --densify_error_threshold 1 \
+    # --densify_error_threshold 1\
     -r 8 \
     --disable_viewer
 
