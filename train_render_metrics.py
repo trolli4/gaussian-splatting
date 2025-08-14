@@ -187,7 +187,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     # TODO: figure out which value for error_threshhold is best
                     # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians)
+                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians, opt.densify_grad_threshold, opt.error_grad_weight)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity()

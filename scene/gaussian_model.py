@@ -423,12 +423,17 @@ class GaussianModel:
         self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
         self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
-    def densify_and_split(self, errors, error_threshold, scene_extent, N=2):
+    def densify_and_split(self, errors, error_threshold, scene_extent, grads, grad_threshold, N=2):
         n_init_points = self.get_xyz.shape[0]
+        # Extract points that satisfy the gradient condition
+        padded_grad = torch.zeros((n_init_points), device="cuda")
+        padded_grad[:grads.shape[0]] = grads.squeeze()
+        selected_pts_mask_grad = torch.where(padded_grad >= grad_threshold, True, False)
         # Extract points that satisfy the error condition
         padded_errors = torch.zeros((n_init_points), device="cuda")                     # what this do?
         padded_errors[:errors.shape[0]] = errors.squeeze()                              # does this work?
-        selected_pts_mask = torch.where(padded_errors >= error_threshold, True, False)
+        selected_pts_mask_error = torch.where(padded_errors >= error_threshold, True, False)
+        selected_pts_mask = torch.logical_or(selected_pts_mask_error, selected_pts_mask_grad)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                               torch.max(self.get_scaling, dim=1).values > self.percent_dense*scene_extent)
 
@@ -449,9 +454,11 @@ class GaussianModel:
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
 
-    def densify_and_clone(self, errors, error_threshold, scene_extent):
+    def densify_and_clone(self, errors, error_threshold, scene_extent, grads, grad_threshold):
         # Extract points that satisfy the gradient condition
-        selected_pts_mask = torch.where(errors >= error_threshold, True, False)
+        selected_pts_mask_error = torch.where(errors >= error_threshold, True, False)
+        selected_pts_mask_grad = torch.where(torch.norm(grads, dim=-1) >= grad_threshold, True, False)
+        selected_pts_mask = torch.logical_or(selected_pts_mask_error, selected_pts_mask_grad)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                               torch.max(self.get_scaling, dim=1).values <= self.percent_dense*scene_extent)
         
@@ -466,18 +473,25 @@ class GaussianModel:
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_tmp_radii)
 
-    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians):
-        errors = self.E_k
-        errors[errors.isnan()] = 0.0
+    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians, grad_threshold, ratio_error_grad):
         num_gaussians = self._xyz.shape[0]                                                                  # current num of gaussians
         max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
+        
+        grads = self.xyz_gradient_accum / self.denom
+        grads[grads.isnan()] = 0.0
+        masked_grads = torch.zeros_like(grads)
+        _, max_k_indices = torch.topk(grads.squeeze(), int(max_new_gaussians*(1-ratio_error_grad)))
+        masked_grads[max_k_indices] = grads[max_k_indices]
+
+        errors = self.E_k
+        errors[errors.isnan()] = 0.0
         masked_errors = torch.zeros_like(errors)
-        _, max_k_indices = torch.topk(errors.squeeze(), max_new_gaussians)
+        _, max_k_indices = torch.topk(errors.squeeze(), int(max_new_gaussians*ratio_error_grad))
         masked_errors[max_k_indices] = errors[max_k_indices]
 
         self.tmp_radii = radii
-        self.densify_and_clone(masked_errors, error_threshold, extent)
-        self.densify_and_split(masked_errors, error_threshold, extent)
+        self.densify_and_clone(masked_errors, error_threshold, extent, masked_grads, grad_threshold)
+        self.densify_and_split(masked_errors, error_threshold, extent, masked_grads, grad_threshold)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
