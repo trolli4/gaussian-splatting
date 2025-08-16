@@ -4,9 +4,9 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_err_growth
-#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1.out
+#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_debug_save.out
 
-MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1"
+MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_debug_save"
 
 
 # fill test_iterations with all iterations to compute PSNR at
@@ -21,8 +21,8 @@ source $(conda info --base)/etc/profile.d/conda.sh
 # Activate environment
 conda activate gaussian_splatting
 
-echo "training & rendering.."
-CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
+echo "training"
+CUDA_LAUNCH_BLOCKING=1 python train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/flowers \
     -m "$MODEL_PATH" \
     --eval \
@@ -30,6 +30,10 @@ CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
     --densify_error_threshold 1 \
     -r 8 \
     --disable_viewer
+
+echo "rendering.."
+CUDA_LAUNCH_BLOCKING=1 python render.py \
+    -m "$MODEL_PATH" 
 
 echo "evaluating.."
 CUDA_LAUNCH_BLOCKING=1 python metrics.py \
