@@ -144,19 +144,26 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         else:
             Ll1depth = 0
 
-        loss.backward(retain_graph=True)
-
-        # error-based densification
+                # Aux term
         per_pixel_error = torch.abs(image - gt_image)
-        phi_ERR = error_render                                                      # error_render returned by render(..)
+        phi_ERR = error_render  # returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
-        L_aux.backward()
-        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
+
+        # Combined loss
+        total_loss = loss + L_aux
+
+        # Backward in one pass
+        total_loss.backward()
+
+        # Now grab grads for densification
         with torch.no_grad():
-            torch.maximum(gaussians.E_k, dL_aux_derror_helper.detach().squeeze(-1), out=gaussians.E_k)
-        """ log_variable("error_gradient", dL_aux_derror_helper)
-        log_variable("E_k", gaussians.E_k) """
-        gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
+            dL_aux_derror_helper = gaussians.get_e_k.grad     # E_k_pi
+            torch.maximum(gaussians.E_k,
+                        dL_aux_derror_helper.detach().squeeze(-1),
+                        out=gaussians.E_k)
+
+        # Reset grads on e_k since we only used them as helpers
+        gaussians.e_k.grad.zero_()
 
         iter_end.record()
 
