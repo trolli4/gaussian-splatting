@@ -3,8 +3,8 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_op_correction
-#SBATCH --output=logs/garden_opacity_correction_only.out
+#SBATCH --job-name=gs_opacity
+#SBATCH --output=logs/garden_opacity_reset_correction.out
 
 
 # fill test_iterations with all iterations to compute PSNR at
@@ -17,12 +17,8 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting_old
+conda activate gaussian_splatting_opacity_reset_only
 
 # Run training
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m output/garden_opacity_correction_only \
-    --test_iterations $iterations_to_test \
-    -r 8 \
-    --disable_viewer
+python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/flowers -m output/flowers_opacity_reset_correction
