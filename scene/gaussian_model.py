@@ -267,10 +267,18 @@ class GaussianModel:
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
 
-    def reset_opacity(self):
-        opacities_new = self.inverse_opacity_activation(torch.min(self.get_opacity, torch.ones_like(self.get_opacity)*0.01))
+    def reset_opacity(self, opacity_pruning_threshold):
+        opacity_reduction = 0.001
+        opacity_minimum = 0.001
+        opacities_new = self.inverse_opacity_activation(torch.max(self.get_opacity - opacity_reduction, torch.ones_like(self.get_opacity)*opacity_minimum))
         optimizable_tensors = self.replace_tensor_to_optimizer(opacities_new, "opacity")
         self._opacity = optimizable_tensors["opacity"]
+
+    def correct_opacity(self, mask):
+        alpha = self.opacity_activation(self._opacity[mask])
+        alpha_new = 1.0 - torch.sqrt(1.0 - alpha)                                           # equation from local revising densification paper: alpha_new = 1 - sqrt(1 - alpha_old)
+        opacity_new = self.inverse_opacity_activation(alpha_new)
+        self._opacity[mask] = opacity_new
 
     def load_ply(self, path, use_train_test_exp = False):
         plydata = PlyData.read(path)
@@ -465,6 +473,7 @@ class GaussianModel:
         new_xyz = self._xyz[selected_pts_mask]
         new_features_dc = self._features_dc[selected_pts_mask]
         new_features_rest = self._features_rest[selected_pts_mask]
+        self.correct_opacity(selected_pts_mask)                         # alpha_new = 1 - sqrt(1 - alpha_old) // calculated in sigmoid space
         new_opacities = self._opacity[selected_pts_mask]
         new_scaling = self._scaling[selected_pts_mask]
         new_rotation = self._rotation[selected_pts_mask]

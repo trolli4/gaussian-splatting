@@ -3,8 +3,8 @@
 #SBATCH --time=1:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_err_growth
-#SBATCH --output=logs/garden_error_based_densification_growth_control.out
+#SBATCH --job-name=gs_train
+#SBATCH --output=logs/garden_full.out
 
 
 # fill test_iterations with all iterations to compute PSNR at
@@ -17,12 +17,12 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting
+conda activate gaussian_splatting_full
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m output/garden_error_based_densification_growth_control \
+    -m output/garden_full \
     --test_iterations $iterations_to_test \
     -r 8 \
     --disable_viewer
