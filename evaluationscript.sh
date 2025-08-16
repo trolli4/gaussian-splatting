@@ -4,9 +4,9 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_err_growth
-#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1.out
+#SBATCH --output=logs/flowers_r_8/error_based_densification_growth_control_one_backward.out
 
-MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_27k_sizethresh_10_eval_1"
+MODEL_PATH="output/flowers_r_8/error_based_densification_growth_control_one_backward"
 
 
 # fill test_iterations with all iterations to compute PSNR at
