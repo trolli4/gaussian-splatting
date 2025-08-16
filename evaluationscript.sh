@@ -4,9 +4,9 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_op_reset
-#SBATCH --output=logs/counter_opacity_reset_only_eval.out
+#SBATCH --output=logs/flowers_opacity_reset_only_eval.out
 
-MODEL_PATH="output/counter_opacity_reset_only_eval"
+MODEL_PATH="output/flowers_opacity_reset_only_eval"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -22,7 +22,7 @@ conda activate gaussian_splatting_opacity_reset_only
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/counter \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/flowers \
     -m "${MODEL_PATH}" \
     --test_iterations $iterations_to_test \
     -r 8 \
