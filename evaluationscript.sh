@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_op_correction
+#SBATCH --job-name=gs_eval
 #SBATCH --output=logs/flowers_full_eval.out
 
 MODEL_PATH="output/flowers_full_eval"

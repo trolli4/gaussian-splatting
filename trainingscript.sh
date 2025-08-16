@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_train
-#SBATCH --output=logs/garden_full.out
+#SBATCH --output=logs/flowers_full_real_size.out
 
 
 # fill test_iterations with all iterations to compute PSNR at
@@ -21,8 +21,8 @@ conda activate gaussian_splatting_full
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m output/garden_full \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/flowers \
+    -m output/flowers_full_real_size \
     --test_iterations $iterations_to_test \
-    -r 8 \
-    --disable_viewer
+    -r -1 \
+    # --disable_viewer
