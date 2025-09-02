@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=mlgpu_short
-#SBATCH --time=3:00:00
+#SBATCH --time=4:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_{$1}
+#SBATCH --job-name=gs_own
 # #SBATCH --output=logs/own-scenes/eval/{$1}.out
 
 MY_PATH="own-scenes/$1"
@@ -28,7 +28,7 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render
     -s /home/s76mfroe_hpc/"${MY_PATH}" \
     -m "${MODEL_PATH}" \
     --test_iterations $iterations_to_test \
-    -r 8 \
+    -r -1 \
     --disable_viewer \
     --eval
 
