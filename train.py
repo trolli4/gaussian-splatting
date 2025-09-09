@@ -112,7 +112,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
-        if (iteration in saving_iterations):
+        if (iteration in testing_iterations):
             old_grads = gaussians.xyz_gradient_accum / gaussians.denom
             old_grads[old_grads.isnan()] = 0.0
             print("============ old grads (min, max) ===============")
@@ -172,7 +172,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
-        if (iteration in saving_iterations):
+        if (iteration in testing_iterations):
             new_grads = gaussians.xyz_gradient_accum / gaussians.denom
             new_grads[new_grads.isnan()] = 0.0
             grads = new_grads - old_grads
@@ -187,7 +187,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
-            if (iteration in saving_iterations):
+            if (iteration in testing_iterations):
                 # grads = torch.abs(grads)
                 clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
                 override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
