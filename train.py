@@ -109,12 +109,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
-        if (iteration in testing_iterations):
+        """if (iteration in testing_iterations):
             old_grads = gaussians.xyz_gradient_accum / gaussians.denom
             old_grads[old_grads.isnan()] = 0.0
             print("============ old grads (min, max) ===============")
             print("min:", old_grads.min())
-            print("max:", old_grads.max())
+            print("max:", old_grads.max()) """
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
@@ -152,13 +152,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         if (iteration in testing_iterations):
             new_grads = gaussians.xyz_gradient_accum / gaussians.denom
             new_grads[new_grads.isnan()] = 0.0
-            grads = new_grads - old_grads
+            """ grads = new_grads - old_grads
             print("============ new grads (min, max) ===============")
             print("min:", new_grads.min())
             print("max:", new_grads.max())
             print("============ grads (min, max) ===============")
             print("min:", grads.min())
-            print("max:", grads.max())
+            print("max:", grads.max()) """
 
         iter_end.record()
 
@@ -166,12 +166,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             # visualize gradients 
             if (iteration in testing_iterations):
                 # grads = torch.abs(grads)
-                clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
-                override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
+                override_colors = torch.stack([new_grads]*3, dim=1)                 # each "rgb channel" gets same value
                 gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
                 render_path = os.path.join(model_path, "gradients")
                 os.makedirs(render_path, exist_ok=True)
                 torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + ".png"))
+                # rescale grads to [0,1]
+                clamped_grads = (new_grads - new_grads.min()) / (new_grads.max() - new_grads.min())
+                override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
+                gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
+                render_path = os.path.join(model_path, "gradients")
+                os.makedirs(render_path, exist_ok=True)
+                torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_rescaled.png"))
 
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
