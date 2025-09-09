@@ -21,7 +21,7 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate gaussian_splatting_opacity_reset_only
 
 # Run training
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+CUDA_LAUNCH_BLOCKING=1 python train.py \
     -s /home/s76mfroe_hpc/nerf-360-scenes/flowers \
     -m "${MODEL_PATH}" \
     --test_iterations $iterations_to_test \
@@ -29,8 +29,8 @@ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
     --disable_viewer \
     --eval
 
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
+CUDA_LAUNCH_BLOCKING=1 python render.py \
     -m "${MODEL_PATH}"
 
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
+CUDA_LAUNCH_BLOCKING=1 python metrics.py \
     -m "${MODEL_PATH}"
