@@ -14,10 +14,14 @@ module load CUDA/11.8.0
 export CUDA_HOME=$CUDA_HOME
 
 # Clean existing env
-conda env remove --name gaussian_splatting_opacity_reset_only -y
+env_name="gaussian_splatting_opacity_reset_only"
+
+if conda info --envs | grep -q "$env_name"; then
+conda env remove --name "$env_name" -y;
+fi
 
 # Create environment
-conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
+conda env create --file environment.yml
 
 # Activate environment
 source activate gaussian_splatting_opacity_reset_only
