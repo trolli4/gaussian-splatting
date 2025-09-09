@@ -149,7 +149,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         loss.backward()
 
-        if (iteration in testing_iterations):
+        if ((iteration in testing_iterations) or (iteration+1 in testing_iterations)):
             new_grads = gaussians.xyz_gradient_accum / gaussians.denom
             new_grads[new_grads.isnan()] = 0.0
             """ grads = new_grads - old_grads
