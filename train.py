@@ -167,6 +167,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if ((iteration in testing_iterations) or (iteration+1 in testing_iterations)):
                 # grads = torch.abs(grads)
                 clamped_grads = (new_grads - new_grads.min()) / (new_grads.max() - new_grads.min())     # rescale grads to [0,1]
+                clamped_grads = 1 - clamped_grads                                       # invert image
                 override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
                 gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
                 render_path = os.path.join(model_path, "gradients")
