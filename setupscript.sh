@@ -27,6 +27,6 @@ conda env create --file environment.yml
 source activate gaussian_splatting_opacity_reset_only
 
 # Install C++/CUDA submodules (after torch is installed)
-pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
-            /home/s76mfroe_hpc/gaussian-splatting/submodules/simple-knn \
-            /home/s76mfroe_hpc/gaussian-splatting/submodules/fused-ssim
+pip install submodules/diff-gaussian-rasterization \
+            submodules/simple-knn \
+            submodules/fused-ssim
