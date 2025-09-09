@@ -112,6 +112,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
+        old_grads = gaussians.xyz_gradient_accum / gaussians.denom
+        old_grads[old_grads.isnan()] = 0.0
+
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
         image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
 
@@ -165,9 +168,16 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
+        new_grads = gaussians.xyz_gradient_accum / gaussians.denom
+        new_grads[new_grads.isnan()] = 0.0
+
+        grads = new_grads - old_grads
+
         iter_end.record()
 
         with torch.no_grad():
+            # visualize gradients 
+
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_Ll1depth_for_log = 0.4 * Ll1depth + 0.6 * ema_Ll1depth_for_log
