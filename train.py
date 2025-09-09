@@ -172,7 +172,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
-        if ((iteration in testing_iterations) or (iteration+1 in testing_iterations)):
+        if ((iteration in testing_iterations) or (iteration+1 in testing_iterations) or (iteration-1 in testing_iterations)):
             new_grads = gaussians.xyz_gradient_accum / gaussians.denom
             new_grads[new_grads.isnan()] = 0.0
             """ grads = new_grads - old_grads
@@ -187,7 +187,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
-            if ((iteration in testing_iterations) or (iteration+1 in testing_iterations)):
+            if ((iteration in testing_iterations) or (iteration+1 in testing_iterations) or (iteration-1 in testing_iterations)):
                 # grads = torch.abs(grads)
                 clamped_grads = (new_grads - new_grads.min()) / (new_grads.max() - new_grads.min())     # rescale grads to [0,1]
                 clamped_grads = 1 - clamped_grads                                       # invert image
