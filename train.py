@@ -174,7 +174,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 os.makedirs(render_path, exist_ok=True)
                 torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gradient.png"))
                 torchvision.utils.save_image(image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_render.png"))
-                torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gt.png"))
+                torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_truth.png"))
                 loss_image = torch.abs(image - gt_image)
                 torchvision.utils.save_image(loss_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_loss.png"))
 

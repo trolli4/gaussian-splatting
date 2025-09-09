@@ -19,8 +19,8 @@ done
 for folder in $scenes; do
     if [ -d "$BASE_DATASET_PATH"/"$folder" ]; then
         folder_name=$(basename "$folder")
-        log_file="${LOG_DIR}/visualize_gradients/eval/${folder_name}.out"
-        model_path="output/visualize_gradients/eval/${folder_name}"
+        log_file="${LOG_DIR}/visualize_gradients_v3/eval/${folder_name}.out"
+        model_path="output/visualize_gradients_v3/eval/${folder_name}"
 
         sbatch <<EOF
 #!/bin/bash
