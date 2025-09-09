@@ -164,7 +164,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
-            if (iteration in testing_iterations):
+            if ((iteration in testing_iterations) or (iteration+1 in testing_iterations)):
                 # grads = torch.abs(grads)
                 clamped_grads = (new_grads - new_grads.min()) / (new_grads.max() - new_grads.min())     # rescale grads to [0,1]
                 override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
