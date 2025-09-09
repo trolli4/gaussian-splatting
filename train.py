@@ -43,7 +43,7 @@ try:
 except:
     SPARSE_ADAM_AVAILABLE = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, model_path):
 
     if not SPARSE_ADAM_AVAILABLE and opt.optimizer_type == "sparse_adam":
         sys.exit(f"Trying to use sparse adam but it is not installed, please install the correct rasterizer using pip install [3dgs_accel].")
@@ -177,6 +177,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
+            if (iteration in saving_iterations):
+                # grads = torch.abs(grads)
+                clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
+                override_colors = [clamped_grads, clamped_grads, clamped_grads]         # each "rgb channel" gets same value
+                gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
+                render_path = os.path.join(model_path, "gradients")
+                os.makedirs(render_path, exist_ok=True)
+                torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + ".png"))
 
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
@@ -332,7 +340,7 @@ if __name__ == "__main__":
     """ if not args.disable_viewer:
         network_gui.init(args.ip, args.port) """
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.model_path)
 
     # All done
     print("\nTraining complete.")
