@@ -198,6 +198,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gradient.png"))
                 torchvision.utils.save_image(image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_render.png"))
                 torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gt.png"))
+                loss_image = torch.abs(image - gt_image)
+                torchvision.utils.save_image(loss_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_loss.png"))
 
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
