@@ -199,6 +199,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 torchvision.utils.save_image(image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_render.png"))
                 torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gt.png"))
                 loss_image = torch.abs(image - gt_image)
+                loss_image = 1 - loss_image
                 torchvision.utils.save_image(loss_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_loss.png"))
 
             # Progress bar
