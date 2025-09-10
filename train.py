@@ -166,7 +166,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.e_k.grad.zero_()
 
         if ((iteration <= visualize_gradient_until_iter) and (rand_idx == visualize_gradient_cam)):
-            grads = gaussians.xyz_gradient_accum / gaussians.denom
+            grads = dL_aux_derror_helper.detach().squeeze(-1)
             grads[grads.isnan()] = 0.0
 
         iter_end.record()
@@ -183,7 +183,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 os.makedirs(render_path, exist_ok=True)
                 torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gradient.png"))
                 torchvision.utils.save_image(image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_render.png"))
-                torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gt.png"))
+                torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_truth.png"))
                 loss_image = torch.abs(image - gt_image)
                 loss_image = 1 - loss_image
                 torchvision.utils.save_image(loss_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_loss.png"))
