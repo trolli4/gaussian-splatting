@@ -142,7 +142,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         loss.backward()
 
-        if ((iteration <= visualize_gradient_until_iter) and (rand_idx == visualize_gradient_cam)):
+        # debug rand_idx
+        print("viewpoint_cam.uid:", viewpoint_cam.uid, "     //     ", "visualize_gradient_cam:", visualize_gradient_cam[0])
+        if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
             grads = gaussians.xyz_gradient_accum / gaussians.denom
             grads[grads.isnan()] = 0.0
 
@@ -150,7 +152,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
-            if ((iteration <= visualize_gradient_until_iter) and (rand_idx == visualize_gradient_cam)):
+            if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
                 # grads = torch.abs(grads)
                 clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
                 clamped_grads = 1 - clamped_grads                                       # invert image
