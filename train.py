@@ -112,13 +112,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
-        """if (iteration in testing_iterations):
-            old_grads = gaussians.xyz_gradient_accum / gaussians.denom
-            old_grads[old_grads.isnan()] = 0.0
-            print("============ old grads (min, max) ===============")
-            print("min:", old_grads.min())
-            print("max:", old_grads.max()) """
-
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
         image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
 
@@ -172,24 +165,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
-        if ((iteration in testing_iterations) or (iteration+1 in testing_iterations) or (iteration-2 in testing_iterations)):
-            new_grads = gaussians.xyz_gradient_accum / gaussians.denom
-            new_grads[new_grads.isnan()] = 0.0
-            """ grads = new_grads - old_grads
-            print("============ new grads (min, max) ===============")
-            print("min:", new_grads.min())
-            print("max:", new_grads.max())
-            print("============ grads (min, max) ===============")
-            print("min:", grads.min())
-            print("max:", grads.max()) """
+        if (iteration in testing_iterations):
+            grads = gaussians.xyz_gradient_accum / gaussians.denom
+            grads[grads.isnan()] = 0.0
 
         iter_end.record()
 
         with torch.no_grad():
             # visualize gradients 
-            if ((iteration in testing_iterations) or (iteration+1 in testing_iterations) or (iteration-2 in testing_iterations)):
+            if (iteration in testing_iterations):
                 # grads = torch.abs(grads)
-                clamped_grads = (new_grads - new_grads.min()) / (new_grads.max() - new_grads.min())     # rescale grads to [0,1]
+                clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
                 clamped_grads = 1 - clamped_grads                                       # invert image
                 override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
                 gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
