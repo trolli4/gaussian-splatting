@@ -161,12 +161,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             torch.maximum(gaussians.E_k,
                         dL_aux_derror_helper.detach().squeeze(-1),
                         out=gaussians.E_k)
+            error_grads = dL_aux_derror_helper.detach().clone()
 
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
         if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
-            grads = dL_aux_derror_helper.detach().squeeze(-1)
+            grads = error_grads.detach().squeeze(-1)
             grads[grads.isnan()] = 0.0
 
         iter_end.record()
