@@ -4,7 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_own
-# #SBATCH --output=logs/visualize_errors/flowers.out
+#SBATCH --output=logs/visualize_errors/flowers.out
 
 export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
 
