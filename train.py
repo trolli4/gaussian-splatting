@@ -10,7 +10,9 @@
 #
 
 import os
+from os import makedirs
 import torch
+import torchvision
 import numpy as np                                                  # used for logging tensor values
 from random import randint
 from utils.loss_utils import l1_loss, ssim
@@ -111,7 +113,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
-        image, viewspace_point_tensor, visibility_filter, radii, error_render, residual_opacity = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"], render_pkg["residual_opacity"]
+        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
 
         # Alpha Masking of image
         if viewpoint_cam.alpha_mask is not None:
@@ -142,25 +144,26 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         else:
             Ll1depth = 0
 
-        # debug shape of residual opacity
-        average_residual_opacity = torch.mean(residual_opacity)
-        weighted_opacity_loss = 0.1 * average_residual_opacity
-
-        loss += weighted_opacity_loss
-
-        loss.backward(retain_graph=True)
-
-        # error-based densification
+                # Aux term
         per_pixel_error = torch.abs(image - gt_image)
-        phi_ERR = error_render                                                      # error_render returned by render(..)
+        phi_ERR = error_render  # returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
-        L_aux.backward()
-        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
+
+        # Combined loss
+        total_loss = loss + L_aux
+
+        # Backward in one pass
+        total_loss.backward()
+
+        # Now grab grads for densification
         with torch.no_grad():
-            torch.maximum(gaussians.E_k, dL_aux_derror_helper.detach().squeeze(-1), out=gaussians.E_k)
-        """ log_variable("error_gradient", dL_aux_derror_helper)
-        log_variable("E_k", gaussians.E_k) """
-        gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
+            dL_aux_derror_helper = gaussians.get_e_k.grad     # E_k_pi
+            torch.maximum(gaussians.E_k,
+                        dL_aux_derror_helper.detach().squeeze(-1),
+                        out=gaussians.E_k)
+
+        # Reset grads on e_k since we only used them as helpers
+        gaussians.e_k.grad.zero_()
 
         iter_end.record()
 
@@ -191,7 +194,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     # TODO: figure out which value for error_threshhold is best
                     # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_error_threshold, opt.opacity_min_threshold, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians, opt.densify_grad_threshold, opt.error_grad_weight)
+                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians, opt.densify_grad_threshold, opt.error_grad_weight)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                     gaussians.reset_opacity(opt.opacity_min_threshold)
