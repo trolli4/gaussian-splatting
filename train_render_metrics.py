@@ -168,6 +168,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
             grads = error_grads.detach().squeeze(-1)
+            print("error grads[0:20]:", grads[0:20])
             grads[grads.isnan()] = 0.0
 
         iter_end.record()
