@@ -19,8 +19,8 @@ done
 for folder in $scenes; do
     if [ -d "$BASE_DATASET_PATH"/"$folder" ]; then
         folder_name=$(basename "$folder")
-        log_file="${LOG_DIR}/visualize_gradients_v3/eval/${folder_name}.out"
-        model_path="output/visualize_gradients_v3/eval/${folder_name}"
+        log_file="${LOG_DIR}/visualize_gradients_v5/eval/${folder_name}.out"
+        model_path="output/visualize_gradients_v5/eval/${folder_name}"
 
         sbatch <<EOF
 #!/bin/bash
@@ -42,6 +42,8 @@ python train.py \\
     -r 8 \\
     --eval \
     --test_iterations $iterations_to_test \
+    --visualize_gradient_cam 121 \
+    --iterations 2_000
 # comment
 
 python render.py \\
