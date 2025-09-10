@@ -41,7 +41,7 @@ try:
 except:
     SPARSE_ADAM_AVAILABLE = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, model_path):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, model_path, visualize_gradient_cam, visualize_gradient_until_iter):
 
     if not SPARSE_ADAM_AVAILABLE and opt.optimizer_type == "sparse_adam":
         sys.exit(f"Trying to use sparse adam but it is not installed, please install the correct rasterizer using pip install [3dgs_accel].")
@@ -142,7 +142,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         loss.backward()
 
-        if (iteration in testing_iterations):
+        if ((iteration <= visualize_gradient_until_iter) and (rand_idx == visualize_gradient_cam)):
             grads = gaussians.xyz_gradient_accum / gaussians.denom
             grads[grads.isnan()] = 0.0
 
@@ -150,7 +150,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         with torch.no_grad():
             # visualize gradients 
-            if (iteration in testing_iterations):
+            if ((iteration <= visualize_gradient_until_iter) and (rand_idx == visualize_gradient_cam)):
                 # grads = torch.abs(grads)
                 clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
                 clamped_grads = 1 - clamped_grads                                       # invert image
@@ -284,6 +284,8 @@ if __name__ == "__main__":
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 30_000])
+    parser.add_argument("--visualize_gradient_cam", nargs="+", type=int, default=None)
+    parser.add_argument("--visualize_gradient_until_iter", type=int, default=30_000)
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument('--disable_viewer', action='store_true', default=False)
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
@@ -300,7 +302,7 @@ if __name__ == "__main__":
     if not args.disable_viewer:
         network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.model_path)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.model_path, args.visualize_gradient_cam, args.visualize_gradient_until_iter)
 
     # All done
     print("\nTraining complete.")
