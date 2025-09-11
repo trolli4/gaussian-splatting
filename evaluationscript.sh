@@ -34,8 +34,7 @@ CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
     --disable_viewer \
     --eval
 
-: <<'COMMENT'
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
+CUDA_LAUNCH_BLOCKING=1 python render.py \
     -m "${MODEL_PATH}"
 COMMENT
 
