@@ -4,14 +4,14 @@
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
 #SBATCH --job-name=gs_own
-#SBATCH --output=logs/visualize_errors/flowers.out
+#SBATCH --output=logs/visualize_errors_accumulated/flowers.out
 
 export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
 
 MY_PATH="nerf-360-scenes/flowers"
 SCENE_FOLDER=${MY_PATH%/*}
 SCENE=${MY_PATH#*/}
-MODEL_PATH="output/visualize_errors/${SCENE_FOLDER}/eval/${SCENE}"
+MODEL_PATH="output/visualize_errors_accumulated/${SCENE_FOLDER}/eval/${SCENE}"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"

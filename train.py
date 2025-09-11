@@ -167,7 +167,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.e_k.grad.zero_()
 
         if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
-            grads = error_grads.detach().squeeze(-1)
+            grads = gaussians.E_k
             grads[grads.isnan()] = 0.0
 
         iter_end.record()
