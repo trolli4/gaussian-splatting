@@ -15,12 +15,17 @@ for i in $(seq 2000 1000 30000); do
      iterations_to_test+=" $i"
 done
 
+iterations_to_visualize_gradient="500"
+for i in $(seq 1000 500 30000); do
+    iterations_to_visualize_gradient+=" $i"
+done
+
 # Loop over all folders in dataset path
 for folder in $scenes; do
     if [ -d "$BASE_DATASET_PATH"/"$folder" ]; then
         folder_name=$(basename "$folder")
-        log_file="${LOG_DIR}/visualize_gradients_v5/eval/${folder_name}.out"
-        model_path="output/visualize_gradients_v5/eval/${folder_name}"
+        log_file="${LOG_DIR}/visualize_gradients_v6/eval/${folder_name}.out"
+        model_path="output/visualize_gradients_v6/eval/${folder_name}"
 
         sbatch <<EOF
 #!/bin/bash
@@ -39,11 +44,11 @@ python train.py \\
     -s "${BASE_DATASET_PATH}/${folder_name}" \\
     -m "${model_path}" \\
     --disable_viewer \\
-    -r 8 \\
+    -r -1 \\
     --eval \
     --test_iterations $iterations_to_test \
-    --visualize_gradient_cam 121 \
-    --iterations 2_000
+    --visualize_gradient_iterations $iterations_to_visualize_gradient \
+    --iterations 30_000
 # comment
 
 python render.py \\
