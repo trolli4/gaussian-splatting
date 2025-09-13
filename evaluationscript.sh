@@ -19,6 +19,11 @@ for i in $(seq 2000 1000 30000); do
      iterations_to_test+=" $i"
 done
 
+iterations_to_visualize_gradients="500"
+for i in $(seq 1000 500 30000); do
+    iterations_to_visualize_gradients+=" $i"
+done
+
 # Source conda.sh to enable 'conda activate' in this script
 source $(conda info --base)/etc/profile.d/conda.sh
 
@@ -33,8 +38,7 @@ CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
     -r -1 \
     --disable_viewer \
     --eval \
-    --visualize_gradient_cam 69 \
-    --iterations 2_000
+    --visualize_gradient_iterations $iterations_to_visualize_gradients
 
 : <<'COMMENT'
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/render.py \
