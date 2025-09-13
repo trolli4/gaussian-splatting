@@ -43,7 +43,7 @@ try:
 except:
     SPARSE_ADAM_AVAILABLE = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, model_path, visualize_gradient_cam, visualize_gradient_until_iter):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, model_path, visualize_gradient_iterations):
 
     if not SPARSE_ADAM_AVAILABLE and opt.optimizer_type == "sparse_adam":
         sys.exit(f"Trying to use sparse adam but it is not installed, please install the correct rasterizer using pip install [3dgs_accel].")
@@ -166,24 +166,32 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Reset grads on e_k since we only used them as helpers
         gaussians.e_k.grad.zero_()
 
-        if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
-            grads = gaussians.E_k
-            print("error grads[0:20]:", grads[0:20])
+        if (iteration in visualize_gradient_iterations):
+            grads = gaussians.xyz_gradient_accum / gaussians.denom
             grads[grads.isnan()] = 0.0
+            error_grads = gaussians.E_k
+            error_grads[error_grads.isnan()] = 0.0
 
         iter_end.record()
 
         with torch.no_grad():
-            # visualize gradients 
-            if ((iteration <= visualize_gradient_until_iter) and (viewpoint_cam.uid == visualize_gradient_cam[0])):
+            # visualize gradients
+            if (iteration in visualize_gradient_iterations):
                 # grads = torch.abs(grads)
                 clamped_grads = (grads - grads.min()) / (grads.max() - grads.min())     # rescale grads to [0,1]
                 clamped_grads = 1 - clamped_grads                                       # invert image
                 override_colors = torch.stack([clamped_grads]*3, dim=1)                 # each "rgb channel" gets same value
                 gradient_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
+
+                clamped_error_grads = (error_grads - error_grads.min()) / (error_grads.max() - error_grads.min())     # rescale grads to [0,1]
+                clamped_error_grads = 1 - clamped_error_grads                                                         # invert image
+                override_colors = torch.stack([clamped_error_grads]*3, dim=1)                                         # each "rgb channel" gets same value
+                error_image = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE, override_color=override_colors)["render"]
+
                 render_path = os.path.join(model_path, "gradients")
                 os.makedirs(render_path, exist_ok=True)
                 torchvision.utils.save_image(gradient_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_gradient.png"))
+                torchvision.utils.save_image(error_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_error.png"))
                 torchvision.utils.save_image(image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_render.png"))
                 torchvision.utils.save_image(gt_image, os.path.join(render_path, '{0:05d}'.format(iteration) + "_truth.png"))
                 loss_image = torch.abs(image - gt_image)
@@ -354,8 +362,7 @@ if __name__ == "__main__":
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[7_000, 30_000])
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7_000, 30_000])
-    parser.add_argument("--visualize_gradient_cam", nargs="+", type=int, default=None)
-    parser.add_argument("--visualize_gradient_until_iter", type=int, default=30_000)
+    parser.add_argument("--visualize_gradient_iterations", nargs="+", type=int, default=None)
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument('--disable_viewer', action='store_true', default=False)
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
@@ -372,7 +379,7 @@ if __name__ == "__main__":
     """ if not args.disable_viewer:
         network_gui.init(args.ip, args.port) """
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.model_path, args.visualize_gradient_cam, args.visualize_gradient_until_iter)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.model_path, args.visualize_gradient_iterations)
 
     # All done
     print("\nTraining complete.")
