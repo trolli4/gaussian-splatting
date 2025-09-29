@@ -122,23 +122,15 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # They will be excluded from value updates used in the splitting criteria.
     rendered_image = rendered_image.clamp(0, 1)
 
-    if is_training:
-        out = {
-            "render": rendered_image,
-            "viewspace_points": screenspace_points,
-            "visibility_filter" : (radii > 0).nonzero(),
-            "radii": radii,
-            "depth" : depth_image,
-            "error_render" : error_render,
-            "residual_opacity" : residual_opacity_pixels
-            }
-    else:
-        out = {
-            "render": rendered_image,
-            "viewspace_points": screenspace_points,
-            # "visibility_filter" : (radii > 0).nonzero(),
-            "radii": radii,
-            "depth" : depth_image,
-            "error_render" : error_render
-            }
+
+    out = {
+        "render": rendered_image,
+        "viewspace_points": screenspace_points,
+        "visibility_filter" : (radii > 0).nonzero(),
+        "radii": radii,
+        "depth" : depth_image,
+        "error_render" : error_render,
+        "residual_opacity" : residual_opacity_pixels
+        }
+    
     return out

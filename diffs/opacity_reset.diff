@@ -1,0 +1,171 @@
+diff --git a/.gitmodules b/.gitmodules
+index e20b9e1..91fe9f1 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -4,7 +4,7 @@
+ [submodule "submodules/diff-gaussian-rasterization"]
+ 	path = submodules/diff-gaussian-rasterization
+ 	url = https://github.com/trolli4/diff-gaussian-rasterization.git
+-	branch = what-have-i-done
++	branch = residual_transmittance
+ [submodule "SIBR_viewers"]
+ 	path = SIBR_viewers
+ 	url = https://gitlab.inria.fr/sibr/sibr_core.git
+diff --git a/environment.yml b/environment.yml
+index ff08787..085702a 100644
+--- a/environment.yml
++++ b/environment.yml
+@@ -1,4 +1,4 @@
+-name: gaussian_splatting
++name: gaussian_splatting_opacity_reset
+ channels:
+   - conda-forge
+   - defaults
+@@ -20,3 +20,4 @@ dependencies:
+       - dearpygui
+       - opencv-python
+       - joblib==1.1.0
++      - numpy<2
+diff --git a/gaussian_renderer/__init__.py b/gaussian_renderer/__init__.py
+index 4679190..6c8be1f 100644
+--- a/gaussian_renderer/__init__.py
++++ b/gaussian_renderer/__init__.py
+@@ -90,7 +90,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+ 
+     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
+     if separate_sh:
+-        rendered_image, radii, depth_image, error_render = rasterizer(
++        rendered_image, radii, depth_image, error_render, residual_opacity_pixels = rasterizer(
+             means3D = means3D,
+             means2D = means2D,
+             dc = dc,
+@@ -102,7 +102,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+             cov3D_precomp = cov3D_precomp,
+             error_helper = error_helper,)
+     else:
+-        rendered_image, radii, depth_image, error_render = rasterizer(
++        rendered_image, radii, depth_image, error_render, residual_opacity_pixels = rasterizer(
+             means3D = means3D,
+             means2D = means2D,
+             shs = shs,
+@@ -142,7 +142,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor,
+         "visibility_filter" : (radii > 0).nonzero(),
+         "radii": radii,
+         "depth" : depth_image,
+-        "error_render" : error_render
++        "error_render" : error_render,
++        "residual_opacity" : residual_opacity_pixels
+         }
+     
+     return out
+diff --git a/scene/gaussian_model.py b/scene/gaussian_model.py
+index ea8bf37..217aa47 100644
+--- a/scene/gaussian_model.py
++++ b/scene/gaussian_model.py
+@@ -268,7 +268,8 @@ class GaussianModel:
+         PlyData([el]).write(path)
+ 
+     def reset_opacity(self):
+-        opacities_new = self.inverse_opacity_activation(torch.min(self.get_opacity, torch.ones_like(self.get_opacity)*0.01))
++        opacity_reduction = 0.001
++        opacities_new = torch.max(self.get_opacity - opacity_reduction, torch.ones_like(self.get_opacity)*0.001)
+         optimizable_tensors = self.replace_tensor_to_optimizer(opacities_new, "opacity")
+         self._opacity = optimizable_tensors["opacity"]
+ 
+diff --git a/setupscript.sh b/setupscript.sh
+index f07f32b..93767c6 100644
+--- a/setupscript.sh
++++ b/setupscript.sh
+@@ -14,13 +14,13 @@ module load CUDA/11.8.0
+ export CUDA_HOME=$CUDA_HOME
+ 
+ # Clean existing env
+-conda env remove --name gaussian_splatting -y
++conda env remove --name gaussian_splatting_opacity_reset -y
+ 
+ # Create environment
+ conda env create --file /home/s76mfroe_hpc/gaussian-splatting/environment.yml
+ 
+ # Activate environment
+-source activate gaussian_splatting
++source activate gaussian_splatting_opacity_reset
+ 
+ # Install C++/CUDA submodules (after torch is installed)
+ pip install /home/s76mfroe_hpc/gaussian-splatting/submodules/diff-gaussian-rasterization \
+diff --git a/submodules/diff-gaussian-rasterization b/submodules/diff-gaussian-rasterization
+index f179d43..50eeb98 160000
+--- a/submodules/diff-gaussian-rasterization
++++ b/submodules/diff-gaussian-rasterization
+@@ -1 +1 @@
+-Subproject commit f179d43516050c55de3af26a31b5264193508a07
++Subproject commit 50eeb9837682830d14c86159e5a7a5e02fefaea4
+diff --git a/submodules/fused-ssim b/submodules/fused-ssim
+index 8bdb59f..b4fd832 160000
+--- a/submodules/fused-ssim
++++ b/submodules/fused-ssim
+@@ -1 +1 @@
+-Subproject commit 8bdb59feb7b9a41b1fab625907cb21f5417deaac
++Subproject commit b4fd8324e81c48c9b2b9f62e1b9c6431fece6ab3
+diff --git a/train.py b/train.py
+index a9a8efd..2a64e8b 100644
+--- a/train.py
++++ b/train.py
+@@ -111,7 +111,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+         bg = torch.rand((3), device="cuda") if opt.random_background else background
+ 
+         render_pkg = render(viewpoint_cam, gaussians, pipe, bg, use_trained_exp=dataset.train_test_exp, separate_sh=SPARSE_ADAM_AVAILABLE)
+-        image, viewspace_point_tensor, visibility_filter, radii, error_render = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"]
++        image, viewspace_point_tensor, visibility_filter, radii, error_render, residual_opacity = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"], render_pkg["error_render"], render_pkg["residual_opacity"]
+ 
+         # Alpha Masking of image
+         if viewpoint_cam.alpha_mask is not None:
+@@ -142,6 +142,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
+         else:
+             Ll1depth = 0
+ 
++        # debug shape of residual opacity
++        print("residual_opacity shape:", residual_opacity.shape)
++        average_residual_opacity = torch.mean(residual_opacity)
++        weighted_opacity_loss = 0.1 * average_residual_opacity
++
++        loss += weighted_opacity_loss
++
+         loss.backward(retain_graph=True)
+ 
+         # error-based densification
+diff --git a/trainingscript.sh b/trainingscript.sh
+index 9d193e6..133a471 100644
+--- a/trainingscript.sh
++++ b/trainingscript.sh
+@@ -1,9 +1,12 @@
+ #!/bin/bash
+-#SBATCH --partition=mlgpu_short
+-#SBATCH --time=3:00:00
++#SBATCH --partition=mlgpu_devel
++#SBATCH --time=1:00:00
+ #SBATCH --gpus=1
+ #SBATCH --account=ag_ifi_laehner
+-#SBATCH --job-name=gs_train
++#SBATCH --job-name=gs_op_reset
++#SBATCH --output=logs/garden_opacity_reset.out
++
++error_threshold=5
+ 
+ # fill test_iterations with all iterations to compute PSNR at
+ iterations_to_test="1000"
+@@ -15,11 +18,12 @@ done
+ source $(conda info --base)/etc/profile.d/conda.sh
+ 
+ # Activate environment
+-conda activate gaussian_splatting
++conda activate gaussian_splatting_opacity_reset
+ 
+ # Run training
+ CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
+     -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
+-    -m output/opacity-correction \
++    -m output/garden_opacity_reset \
+     --test_iterations $iterations_to_test \
+-    # --densify_error_threshold 1
++    --densify_error_threshold $error_threshold \
++    -r 8

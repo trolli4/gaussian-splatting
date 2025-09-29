@@ -1,10 +1,9 @@
-name: gaussian_splatting_opacity_reset
+name: gaussian_splatting_full
 channels:
   - conda-forge
   - defaults
 dependencies:
   - tensorboard
-  - numpy<2
   - gcc_linux-64=11
   - gxx_linux-64=11
   - python=3.9

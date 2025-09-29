@@ -1,13 +1,17 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=4:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_full_impl
-#SBATCH --output=logs/counter_full_implementation_eval.out
+#SBATCH --job-name=gs_own
+# #SBATCH --output=logs/own-scenes/eval/{$1}.out
 
-MODEL_PATH="output/counter_full_implementation_eval"
-rm -rf "$MODEL_PATH"
+export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
+
+MY_PATH="own-scenes/$1"
+SCENE_FOLDER=${MY_PATH%/*}
+SCENE=${MY_PATH#*/}
+MODEL_PATH="output/${SCENE_FOLDER}/eval_corrected_opacity_correction/${SCENE}"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -19,17 +23,21 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting_opacity_reset
+conda activate gaussian_splatting_full
 
-echo "training & rendering.."
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train_render_metrics.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/counter \
-    -m "$MODEL_PATH" \
-    --eval \
+# Run training
+CUDA_LAUNCH_BLOCKING=1 python train_render_metrics.py \
+    -s /home/s76mfroe_hpc/"${MY_PATH}" \
+    -m "${MODEL_PATH}" \
     --test_iterations $iterations_to_test \
-    -r 8 \
-    --disable_viewer
+    -r -1 \
+    --disable_viewer \
+    --eval
 
-echo "evaluating.."
-CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/metrics.py \
-    -m "$MODEL_PATH" 
+<< "COMMENT"
+CUDA_LAUNCH_BLOCKING=1 python render.py \
+    -m "${MODEL_PATH}"
+COMMENT
+
+CUDA_LAUNCH_BLOCKING=1 python metrics.py \
+    -m "${MODEL_PATH}"

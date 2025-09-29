@@ -145,26 +145,31 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             Ll1depth = 0
 
         # debug shape of residual opacity
-        print("residual_opacity shape:", residual_opacity.shape)
         average_residual_opacity = torch.mean(residual_opacity)
         weighted_opacity_loss = 0.1 * average_residual_opacity
 
         loss += weighted_opacity_loss
 
-        loss.backward(retain_graph=True)
-
-        # error-based densification
+        # Aux term
         per_pixel_error = torch.abs(image - gt_image)
-        phi_ERR = error_render                                                      # error_render returned by render(..)
+        phi_ERR = error_render  # returned by render(..)
         L_aux = torch.sum(per_pixel_error.detach() * phi_ERR)
-        L_aux.backward()
-        dL_aux_derror_helper = gaussians.get_e_k.grad                               # E_k_pi
-        with torch.no_grad():
-            torch.maximum(gaussians.E_k, dL_aux_derror_helper.detach().squeeze(-1), out=gaussians.E_k)
-        """ log_variable("error_gradient", dL_aux_derror_helper)
-        log_variable("E_k", gaussians.E_k) """
-        gaussians.e_k.grad.zero_()                                                  # set gradients back to zero after each pass
 
+        # Combined loss
+        total_loss = loss + L_aux
+
+        # Backward in one pass
+        total_loss.backward()
+
+        # Now grab grads for densification
+        with torch.no_grad():
+            dL_aux_derror_helper = gaussians.get_e_k.grad     # E_k_pi
+            torch.maximum(gaussians.E_k,
+                        dL_aux_derror_helper.detach().squeeze(-1),
+                        out=gaussians.E_k)
+
+        # Reset grads on e_k since we only used them as helpers
+        gaussians.e_k.grad.zero_()
         iter_end.record()
 
         with torch.no_grad():
@@ -173,7 +178,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             ema_Ll1depth_for_log = 0.4 * Ll1depth + 0.6 * ema_Ll1depth_for_log
 
             if iteration % 10 == 0:
-                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}\n"})
+                progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}", "Depth Loss": f"{ema_Ll1depth_for_log:.{7}f}", "Size": f"{gaussians.get_xyz.shape[0]}"})
                 progress_bar.update(10)
             if iteration == opt.iterations:
                 progress_bar.close()
@@ -194,10 +199,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     # TODO: figure out which value for error_threshhold is best
                     # what does the Boolean Check here do?
                     size_threshold = 20 if iteration > opt.opacity_reset_interval else None
-                    gaussians.densify_and_prune(opt.densify_error_threshold, 0.005, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians)
+                    gaussians.densify_and_prune(opt.densify_error_threshold, opt.opacity_min_threshold, scene.cameras_extent, size_threshold, radii, opt.max_number_gaussians, opt.densify_grad_threshold, opt.error_grad_weight)
 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
-                    gaussians.reset_opacity()
+                    gaussians.reset_opacity(opt.opacity_min_threshold)
 
             # Optimizer step
             if iteration < opt.iterations:
@@ -229,7 +234,7 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(gts_path, exist_ok=True)
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        rendering = render(view, gaussians, pipeline, background, use_trained_exp=train_test_exp, separate_sh=separate_sh, is_training=False)["render"]
+        rendering = render(view, gaussians, pipeline, background, use_trained_exp=train_test_exp, separate_sh=separate_sh)["render"]
         gt = view.original_image[0:3, :, :]
 
         if args.train_test_exp:

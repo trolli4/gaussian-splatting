@@ -1,13 +1,11 @@
 #!/bin/bash
-#SBATCH --partition=mlgpu_devel
-#SBATCH --time=1:00:00
+#SBATCH --partition=mlgpu_short
+#SBATCH --time=3:00:00
 #SBATCH --gpus=1
 #SBATCH --account=ag_ifi_laehner
-#SBATCH --job-name=gs_op_reset
-#SBATCH --output=logs/garden_opacity_reset_tensorboard.out
+#SBATCH --job-name=gs_train
+#SBATCH --output=logs/flowers_full_real_size.out
 
-error_threshold=5
-MODEL_PATH="output/garden_opacity_reset_tensorboard"
 
 # fill test_iterations with all iterations to compute PSNR at
 iterations_to_test="1000"
@@ -19,12 +17,12 @@ done
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # Activate environment
-conda activate gaussian_splatting_opacity_reset
+conda activate gaussian_splatting_full
 
 # Run training
 CUDA_LAUNCH_BLOCKING=1 python /home/s76mfroe_hpc/gaussian-splatting/train.py \
-    -s /home/s76mfroe_hpc/nerf-360-scenes/garden \
-    -m "$MODEL_PATH" \
+    -s /home/s76mfroe_hpc/nerf-360-scenes/flowers \
+    -m output/flowers_full_real_size \
     --test_iterations $iterations_to_test \
-    --densify_error_threshold $error_threshold \
-    -r 8
+    -r -1 \
+    # --disable_viewer

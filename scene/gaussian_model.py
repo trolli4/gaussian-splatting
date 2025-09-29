@@ -120,7 +120,7 @@ class GaussianModel:
     @property
     def get_e_k(self):
         return self.e_k
-    
+
     @property
     def get_features(self):
         features_dc = self._features_dc
@@ -267,11 +267,18 @@ class GaussianModel:
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)
 
-    def reset_opacity(self):
+    def reset_opacity(self, opacity_pruning_threshold):
         opacity_reduction = 0.001
-        opacities_new = torch.max(self.get_opacity - opacity_reduction, torch.ones_like(self.get_opacity)*0.001)
+        opacity_minimum = 0.001
+        opacities_new = self.inverse_opacity_activation(torch.max(self.get_opacity - opacity_reduction, torch.ones_like(self.get_opacity)*opacity_minimum))
         optimizable_tensors = self.replace_tensor_to_optimizer(opacities_new, "opacity")
         self._opacity = optimizable_tensors["opacity"]
+
+    def correct_opacity(self, mask):
+        alpha = self.opacity_activation(self._opacity[mask])
+        alpha_new = 1.0 - torch.sqrt(1.0 - alpha)                                           # equation from local revising densification paper: alpha_new = 1 - sqrt(1 - alpha_old)
+        opacity_new = self.inverse_opacity_activation(alpha_new)
+        self._opacity[mask] = opacity_new
 
     def load_ply(self, path, use_train_test_exp = False):
         plydata = PlyData.read(path)
@@ -422,14 +429,19 @@ class GaussianModel:
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
         # update to new gaussians
         self.e_k = nn.Parameter(torch.zeros((self.get_xyz.shape[0], 1), device="cuda", requires_grad=True))
-        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda") 
+        self.E_k = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
-    def densify_and_split(self, errors, error_threshold, scene_extent, N=2):
+    def densify_and_split(self, errors, error_threshold, scene_extent, grads, grad_threshold, N=2):
         n_init_points = self.get_xyz.shape[0]
+        # Extract points that satisfy the gradient condition
+        padded_grad = torch.zeros((n_init_points), device="cuda")
+        padded_grad[:grads.shape[0]] = grads.squeeze()
+        selected_pts_mask_grad = torch.where(padded_grad >= grad_threshold, True, False)
         # Extract points that satisfy the error condition
         padded_errors = torch.zeros((n_init_points), device="cuda")                     # what this do?
         padded_errors[:errors.shape[0]] = errors.squeeze()                              # does this work?
-        selected_pts_mask = torch.where(padded_errors >= error_threshold, True, False)
+        selected_pts_mask_error = torch.where(padded_errors >= error_threshold, True, False)
+        selected_pts_mask = torch.logical_or(selected_pts_mask_error, selected_pts_mask_grad)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                               torch.max(self.get_scaling, dim=1).values > self.percent_dense*scene_extent)
 
@@ -450,17 +462,19 @@ class GaussianModel:
         prune_filter = torch.cat((selected_pts_mask, torch.zeros(N * selected_pts_mask.sum(), device="cuda", dtype=bool)))
         self.prune_points(prune_filter)
 
-    def densify_and_clone(self, errors, error_threshold, scene_extent):
+    def densify_and_clone(self, errors, error_threshold, scene_extent, grads, grad_threshold):
         # Extract points that satisfy the gradient condition
-        selected_pts_mask = torch.where(errors >= error_threshold, True, False)
+        selected_pts_mask_error = torch.where(errors >= error_threshold, True, False)
+        selected_pts_mask_grad = torch.where(torch.norm(grads, dim=-1) >= grad_threshold, True, False)
+        selected_pts_mask = torch.logical_or(selected_pts_mask_error, selected_pts_mask_grad)
         selected_pts_mask = torch.logical_and(selected_pts_mask,
                                               torch.max(self.get_scaling, dim=1).values <= self.percent_dense*scene_extent)
         
         new_xyz = self._xyz[selected_pts_mask]
         new_features_dc = self._features_dc[selected_pts_mask]
         new_features_rest = self._features_rest[selected_pts_mask]
-        self._opacity[selected_pts_mask] = 1 - torch.sqrt(1 - self._opacity[selected_pts_mask])         # equation from local revising densification paper: 
-        new_opacities = self._opacity[selected_pts_mask]                                                # alpha_new = 1 - sqrt(1 - alpha)
+        self.correct_opacity(selected_pts_mask)                         # alpha_new = 1 - sqrt(1 - alpha_old) // calculated in sigmoid space
+        new_opacities = self._opacity[selected_pts_mask]
         new_scaling = self._scaling[selected_pts_mask]
         new_rotation = self._rotation[selected_pts_mask]
 
@@ -468,18 +482,25 @@ class GaussianModel:
 
         self.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation, new_tmp_radii)
 
-    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians):
+    def densify_and_prune(self, error_threshold, min_opacity, extent, max_screen_size, radii, max_number_gaussians, grad_threshold, ratio_error_grad):
+        num_gaussians = self._xyz.shape[0]                                                                  # current num of gaussians
+        max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
+        
+        grads = self.xyz_gradient_accum / self.denom
+        grads[grads.isnan()] = 0.0
+        masked_grads = torch.zeros_like(grads)
+        _, max_k_indices = torch.topk(grads.squeeze(), int(max_new_gaussians*(1-ratio_error_grad)))
+        masked_grads[max_k_indices] = grads[max_k_indices]
+
         errors = self.E_k
         errors[errors.isnan()] = 0.0
-        num_gaussians = self.E_k.shape[0]                                                                   # current num of gaussians
-        max_new_gaussians = min(int(0.05 * num_gaussians), max(0, max_number_gaussians - num_gaussians))    # increase number of gaussians by at most 5% or until the global limit is reached
         masked_errors = torch.zeros_like(errors)
-        _, max_k_indices = torch.topk(errors, max_new_gaussians)
+        _, max_k_indices = torch.topk(errors.squeeze(), int(max_new_gaussians*ratio_error_grad))
         masked_errors[max_k_indices] = errors[max_k_indices]
 
         self.tmp_radii = radii
-        self.densify_and_clone(masked_errors, error_threshold, extent)
-        self.densify_and_split(masked_errors, error_threshold, extent)
+        self.densify_and_clone(masked_errors, error_threshold, extent, masked_grads, grad_threshold)
+        self.densify_and_split(masked_errors, error_threshold, extent, masked_grads, grad_threshold)
 
         prune_mask = (self.get_opacity < min_opacity).squeeze()
         if max_screen_size:
